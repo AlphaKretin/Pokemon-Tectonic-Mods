@@ -107,12 +107,20 @@ module GameData
             @real_pokedex_entry = "A fusion of #{@head_species.real_name} and #{@body_species.real_name}."
 
             # Typing: head's primary type + body's primary type.
-            # If both primaries are the same, fall back to head's secondary type
-            # (which equals head's primary when the head is mono-typed, making the
-            # fusion effectively mono-typed as well).
+            # Head always contributes its first type.
+            # Body contributes: its other type if it shares a type with type1 and is dual-typed;
+            # otherwise its second type if it has one; otherwise its first type.
             @type1 = @head_species.type1
-            body_primary = @body_species.type1
-            @type2 = (body_primary != @type1) ? body_primary : @head_species.type2
+            body_is_dual = @body_species.type1 != @body_species.type2
+            @type2 = if body_is_dual && @body_species.type1 == @type1
+                         @body_species.type2
+                     elsif body_is_dual && @body_species.type2 == @type1
+                         @body_species.type1
+                     elsif body_is_dual
+                         @body_species.type2
+                     else
+                         @body_species.type1
+                     end
 
             # Stats: average of both parents, clamped to at least 1.
             # stat_rounding 0 skips the rounding logic in the base initializer
