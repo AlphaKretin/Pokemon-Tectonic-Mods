@@ -1,0 +1,3 @@
+﻿Name      = Tectonic Fusions
+Requires  = Chasm Modding Base
+Credits   = LunaFlare, Infinite Fusion team
