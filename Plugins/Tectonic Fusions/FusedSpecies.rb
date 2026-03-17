@@ -8,21 +8,26 @@ module GameData
         class << self
             alias_method :_get_without_fusions, :get
             # Falls through to FUSION_CACHE when the symbol is not in DATA.
+            # If the symbol looks like a fusion ID (not in DATA, not yet cached),
+            # attempts to reconstruct it before raising "Unknown ID".
             def get(other)
-                if other.is_a?(String)
-                    sym = other.to_sym
-                    return FUSION_CACHE[sym] if FUSION_CACHE.key?(sym) && !DATA.key?(sym)
-                elsif other.is_a?(Symbol)
-                    return FUSION_CACHE[other] if FUSION_CACHE.key?(other) && !DATA.key?(other)
+                sym = other.is_a?(String) ? other.to_sym : other
+                if sym.is_a?(Symbol) && !DATA.key?(sym)
+                    return FUSION_CACHE[sym] if FUSION_CACHE.key?(sym)
+                    reconstructed = GameData::FusedSpecies.try_reconstruct(sym)
+                    return reconstructed if reconstructed
                 end
                 return _get_without_fusions(other)
             end
 
             alias_method :_get_species_form_without_fusions, :get_species_form
-            # Returns a cached fusion when the species symbol maps to one.
+            # Returns a cached (or reconstructed) fusion when the species symbol
+            # is not present in DATA.
             def get_species_form(species, form)
-                if species.is_a?(Symbol) && FUSION_CACHE.key?(species) && !DATA.key?(species)
-                    return FUSION_CACHE[species]
+                if species.is_a?(Symbol) && !DATA.key?(species)
+                    return FUSION_CACHE[species] if FUSION_CACHE.key?(species)
+                    reconstructed = GameData::FusedSpecies.try_reconstruct(species)
+                    return reconstructed if reconstructed
                 end
                 return _get_species_form_without_fusions(species, form)
             end
@@ -36,6 +41,24 @@ module GameData
     class FusedSpecies < Species
         attr_reader :head_species
         attr_reader :body_species
+
+        # Attempts to parse +fusion_id+ as a fusion of two known species by trying
+        # every underscore in the string as the head/body split point.  Returns the
+        # resulting FusedSpecies (which is also cached) or nil if no valid split is found.
+        #
+        # Works with multi-word species IDs like MR_MIME or TYPE_NULL because it
+        # tries ALL split positions, not just the first underscore.
+        def self.try_reconstruct(fusion_id)
+            parts = fusion_id.to_s.split("_")
+            return nil if parts.length < 2
+            (1...parts.length).each do |i|
+                head_sym = parts[0...i].join("_").to_sym
+                body_sym = parts[i..].join("_").to_sym
+                next unless GameData::Species::DATA.key?(head_sym) && GameData::Species::DATA.key?(body_sym)
+                return new(head_sym, body_sym) # auto-registers in FUSION_CACHE
+            end
+            return nil
+        end
 
         # @param head [GameData::Species] the species whose front half is used
         # @param body [GameData::Species] the species whose back half is used
