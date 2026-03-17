@@ -6,7 +6,31 @@ module GameData
         FUSION_CACHE = {}
 
         class << self
-            alias_method :_get_without_fusions, :get
+            # Each alias is guarded so that reloading this file (e.g. after a debug
+            # restart) does not re-alias the already-overridden method, which would
+            # make _xxx_without_fusions point back to the override and loop forever.
+            unless method_defined?(:_exists_without_fusions)
+                alias_method :_exists_without_fusions, :exists?
+            end
+            # Also returns true for fusion IDs held in FUSION_CACHE or reconstructable
+            # from DATA.  Without this, SpeciesMetrics (and anything else that calls
+            # Species.exists? as a guard) raises "Undefined species" for fusions.
+            def exists?(other)
+                sym = case other
+                      when Symbol then other
+                      when String then other.to_sym
+                      else nil
+                      end
+                if sym && !DATA.key?(sym)
+                    return true if FUSION_CACHE.key?(sym)
+                    return true if GameData::FusedSpecies.try_reconstruct(sym)
+                end
+                return _exists_without_fusions(other)
+            end
+
+            unless method_defined?(:_get_without_fusions)
+                alias_method :_get_without_fusions, :get
+            end
             # Falls through to FUSION_CACHE when the symbol is not in DATA.
             # If the symbol looks like a fusion ID (not in DATA, not yet cached),
             # attempts to reconstruct it before raising "Unknown ID".
@@ -20,7 +44,9 @@ module GameData
                 return _get_without_fusions(other)
             end
 
-            alias_method :_get_species_form_without_fusions, :get_species_form
+            unless method_defined?(:_get_species_form_without_fusions)
+                alias_method :_get_species_form_without_fusions, :get_species_form
+            end
             # Returns a cached (or reconstructed) fusion when the species symbol
             # is not present in DATA.
             def get_species_form(species, form)
