@@ -2,8 +2,8 @@
 # Kept here rather than in FusedSpecies.rb because this state is only
 # meaningful in the context of the Universal Splicers item.
 class Pokemon
-    attr_accessor :fusion_head  # Original head Pokemon, preserved across the fusion
-    attr_accessor :fusion_body  # Original body Pokemon, preserved across the fusion
+    attr_accessor :fusion_primary    # Original primary Pokemon, preserved across the fusion
+    attr_accessor :fusion_secondary  # Original secondary Pokemon, preserved across the fusion
 
     def fused_species?
         species_data.is_a?(GameData::FusedSpecies)
@@ -27,13 +27,13 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
             pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."), scene)
             next false
         end
-        head = pkmn.fusion_head
-        body = pkmn.fusion_body
+        primary   = pkmn.fusion_primary
+        secondary = pkmn.fusion_secondary
         pkmn_idx = $Trainer.party.index(pkmn)
-        $Trainer.party[pkmn_idx] = head  # restore head to the same slot
-        $Trainer.party.push(body)        # append body to the end
+        $Trainer.party[pkmn_idx] = primary  # restore primary to the same slot
+        $Trainer.party.push(secondary)      # append secondary to the end
         scene&.pbHardRefresh
-        pbSceneDefaultDisplay(_INTL("{1} and {2} were separated!", head.name, body.name), scene)
+        pbSceneDefaultDisplay(_INTL("{1} and {2} were separated!", primary.name, secondary.name), scene)
         next true
     end
 
@@ -61,8 +61,8 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
     fusion_species = GameData::FusedSpecies.new(pkmn.species, poke2.species)
     fused_level    = ((pkmn.level + poke2.level) / 2.0).round
     fused          = Pokemon.new(fusion_species.id, fused_level, pkmn.owner)
-    fused.fusion_head = pkmn
-    fused.fusion_body = poke2
+    fused.fusion_primary = pkmn
+    fused.fusion_secondary = poke2
 
     # Replace pkmn in-place (preserves its party slot), then remove poke2.
     # Fetching poke2's index *before* any mutation avoids index-shift surprises.
