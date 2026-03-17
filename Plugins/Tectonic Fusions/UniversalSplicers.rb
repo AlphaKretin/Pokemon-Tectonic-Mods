@@ -56,20 +56,29 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
         next false
     end
 
-    # Create the FusedSpecies (auto-registers in FUSION_CACHE) and build a new
-    # Pokemon from it.  The new Pokemon's level is the average of both parents.
-    fusion_species = GameData::FusedSpecies.new(pkmn.species, poke2.species)
-    fused_level    = ((pkmn.level + poke2.level) / 2.0).round
-    fused          = Pokemon.new(fusion_species.id, fused_level, pkmn.owner)
-    fused.fusion_primary = pkmn
-    fused.fusion_secondary = poke2
+    # Let the player pick which arrangement they want via the choice UI.
+    choice = pbChooseFusion(pkmn, poke2)
+    next false if choice.nil?
 
-    # Replace pkmn in-place (preserves its party slot), then remove poke2.
-    # Fetching poke2's index *before* any mutation avoids index-shift surprises.
-    poke2_idx = $Trainer.party.index(poke2)
-    $Trainer.party[$Trainer.party.index(pkmn)] = fused
-    $Trainer.remove_pokemon_at_index(poke2_idx)
+    fusion_species  = choice[:fusion]
+    primary_pkmn    = choice[:primary]
+    secondary_pkmn  = choice[:secondary]
+
+    # Build a new Pokemon from the chosen FusedSpecies.
+    # Level is the average of both parents.
+    fused_level = ((primary_pkmn.level + secondary_pkmn.level) / 2.0).round
+    fused       = Pokemon.new(fusion_species.id, fused_level, primary_pkmn.owner)
+    fused.fusion_primary   = primary_pkmn
+    fused.fusion_secondary = secondary_pkmn
+
+    # Replace primary_pkmn in-place (preserves its party slot), then remove
+    # secondary_pkmn.  Capture secondary's index *before* any mutation to
+    # avoid index-shift surprises.
+    secondary_idx = $Trainer.party.index(secondary_pkmn)
+    $Trainer.party[$Trainer.party.index(primary_pkmn)] = fused
+    $Trainer.remove_pokemon_at_index(secondary_idx)
     scene&.pbHardRefresh
-    pbSceneDefaultDisplay(_INTL("{1} and {2} fused into {3}!", pkmn.name, poke2.name, fused.name), scene)
+    pbSceneDefaultDisplay(_INTL("{1} and {2} fused into {3}!",
+                                primary_pkmn.name, secondary_pkmn.name, fused.name), scene)
     next true
 })
