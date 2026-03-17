@@ -128,8 +128,18 @@ module GameData
             @stat_rounding = 0
             @base_stats = {}
             GameData::Stat.each_main do |s|
-                avg = ((@head_species.base_stats[s.id] || 1) + (@body_species.base_stats[s.id] || 1)) / 2.0
-                @base_stats[s.id] = [avg.round, 1].max
+                primary_stat = 0
+                secondary_stat = 0
+                if s in (:ATTACK, :DEFENSE, :SPEED)
+                    primary_stat = @head_species.base_stats[s.id]
+                    secondary_stat = @body_species.base_stats[s.id]
+                else
+                    # HP, Special Stats
+                    primary_stat = @body_species.base_stats[s.id]
+                    secondary_stat = @head_species.base_stats[s.id]
+                end
+                fused_stat = (2 * primary_stat + secondary_stat) / 3.0
+                @base_stats[s.id] = fused_stat.round
             end
 
             @base_exp    = ((@head_species.base_exp + @body_species.base_exp) / 2.0).round
