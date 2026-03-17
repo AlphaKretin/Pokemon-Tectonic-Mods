@@ -153,9 +153,13 @@ module GameData
             @line_moves = (@head_species.line_moves + @body_species.line_moves).uniq
             @line_moves.sort_by! { |a| a.to_s }
 
-            # Abilities: head contributes regular slots; body contributes hidden slots.
-            @abilities        = @head_species.abilities.dup
-            @hidden_abilities = @body_species.hidden_abilities.dup
+            # Abilities: head's first ability + body's second ability (or body's first if it has only one).
+            ability1 = @head_species.abilities[0]
+            ability2 = (@body_species.abilities.length > 1) ? @body_species.abilities[1] : @body_species.abilities[0]
+            @abilities        = [ability1, ability2].compact
+
+            # hidden abilities don't exist in Chasm Engine so this is mostly pointless
+            @hidden_abilities = @head_species.hidden_abilities.dup
 
             @wild_item_common   = nil
             @wild_item_uncommon = nil
