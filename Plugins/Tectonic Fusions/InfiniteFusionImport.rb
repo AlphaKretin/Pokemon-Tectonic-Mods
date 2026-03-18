@@ -634,6 +634,17 @@ module InfiniteFusionImport
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
+    # Returns a new BitmapWrapper that is +bm+ flipped horizontally.
+    # Uses 1-pixel-wide column blits rather than per-pixel access for speed.
+    # The caller is responsible for disposing the result.
+    def self.mirror_horizontal(bm)
+        w      = bm.width
+        h      = bm.height
+        result = BitmapWrapper.new(w, h)
+        w.times { |x| result.blt(w - 1 - x, 0, bm, Rect.new(x, 0, 1, h)) }
+        result
+    end
+
     # Returns true when every sampled pixel in the rectangle (x, y, w, h) of
     # +bm+ is fully transparent (alpha == 0).
     def self.blank_region?(bm, x, y, w, h)
@@ -743,7 +754,11 @@ module InfiniteFusionImport
                 sprite_bm = BitmapWrapper.new(out_w, out_h)
                 sprite_bm.stretch_blt(Rect.new(0, 0, out_w, out_h), sheet_bm, Rect.new(sx, sy, sprite_w, sprite_h))
                 sprite_bm.to_file(front_path) unless front_exists
-                sprite_bm.to_file(back_path)  unless back_exists
+                unless back_exists
+                    back_bm = mirror_horizontal(sprite_bm)
+                    back_bm.to_file(back_path)
+                    back_bm.dispose
+                end
                 sprite_bm.dispose
                 saved       += 1
                 sheet_saved += 1
