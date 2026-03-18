@@ -27,3 +27,5 @@ Data/PBSExtensions.rxdata
 Data/GraphicsExtensions.rxdata
 server.log
 .idea/
+Graphics/Characters/Fusions/*
+Graphics/Pokemon/Fusions/*
