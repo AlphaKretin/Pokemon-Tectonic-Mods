@@ -56,11 +56,10 @@ module FusionSprites
         end
     end
 
-    # Blits +src_bm+ centred on +canvas+, then applies the optional pixel
-    # offset (from metrics, already at 1× scale).
-    def self.blit_centered(canvas, src_bm, off_x = 0, off_y = 0)
-        x = (canvas.width  - src_bm.width)  / 2 + off_x
-        y = (canvas.height - src_bm.height) / 2 + off_y
+    # Blits +src_bm+ centred on +canvas+.
+    def self.blit_centered(canvas, src_bm)
+        x = (canvas.width  - src_bm.width)  / 2
+        y = (canvas.height - src_bm.height) / 2
         canvas.blt(x, y, src_bm, Rect.new(0, 0, src_bm.width, src_bm.height))
     end
 
@@ -74,20 +73,21 @@ module FusionSprites
     end
 
     # Composes a top-half / bottom-half fusion from two bitmaps.
-    # Each bitmap is centred on its own canvas (using metric offsets) before
-    # the halves are sliced and combined.  Canvas is sized to the larger of
-    # the two sprites with no extra padding; metric offsets may clip sprites
-    # slightly at canvas edges for Pokémon with extreme positioning values.
+    # Each bitmap is centred on a shared canvas by dimensions only; no metric
+    # offsets are applied.  Battle metrics are for in-scene positioning, not
+    # composition — applying them shifts content away from the visual centre
+    # and produces a lopsided split.
+    # Canvas is sized to the larger of the two sprites.
     # Returns a BitmapWrapper; the caller is responsible for it (do NOT
     # dispose if it has been handed to RPG::Cache).
-    def self.compose_halves(prim_bm, sec_bm, prim_off = [0, 0], sec_off = [0, 0])
+    def self.compose_halves(prim_bm, sec_bm)
         w = [prim_bm.width,  sec_bm.width ].max
         h = [prim_bm.height, sec_bm.height].max
 
         prim_canvas = Bitmap.new(w, h)
         sec_canvas  = Bitmap.new(w, h)
-        blit_centered(prim_canvas, prim_bm, prim_off[0], prim_off[1])
-        blit_centered(sec_canvas,  sec_bm,  sec_off[0],  sec_off[1])
+        blit_centered(prim_canvas, prim_bm)
+        blit_centered(sec_canvas,  sec_bm)
 
         result  = BitmapWrapper.new(w, h)
         split_y = h / 2
@@ -144,14 +144,7 @@ module FusionSprites
         prim_anim = AnimatedBitmap.new(prim_file)
         sec_anim  = AnimatedBitmap.new(sec_file)
 
-        # Battle metrics: front_sprite = foe-side offset, back_sprite = player-side offset.
-        # Values are stored at 1× pixel scale (the engine multiplies by 2 for display).
-        prim_met = GameData::SpeciesMetrics.get_species_form(prim_sd.species, prim_sd.form)
-        sec_met  = GameData::SpeciesMetrics.get_species_form(sec_sd.species,  sec_sd.form)
-        prim_off = back ? (prim_met&.back_sprite  || [0, 0]) : (prim_met&.front_sprite || [0, 0])
-        sec_off  = back ? (sec_met&.back_sprite   || [0, 0]) : (sec_met&.front_sprite  || [0, 0])
-
-        result = compose_halves(prim_anim.bitmap, sec_anim.bitmap, prim_off, sec_off)
+        result = compose_halves(prim_anim.bitmap, sec_anim.bitmap)
 
         dir       = back ? BACK_DIR : FRONT_DIR
         ensure_dir(dir)
