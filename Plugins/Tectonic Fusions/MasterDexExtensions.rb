@@ -9,6 +9,105 @@
 # fused species and return a single hand-built form-0 entry.  This gives all
 # page drawing methods exactly one form to iterate over, which is all they need.
 class PokemonPokedexInfo_Scene
+    # ── drawPageEvolution override ────────────────────────────────────────────
+    # For fused species the normal method produces duplicate entries (both
+    # components can independently evolve into many of the same intermediate
+    # fusions) and clutters each line with "(through X)" suffixes.
+    # This override deduplicates by species ID and drops that suffix entirely;
+    # all other rendering logic is left identical to the original.
+    unless method_defined?(:_drawPageEvolution_without_fusions)
+        alias_method :_drawPageEvolution_without_fusions, :drawPageEvolution
+    end
+    def drawPageEvolution
+        fusion_data = GameData::Species::FUSION_CACHE[@species]
+        fusion_data ||= GameData::FusedSpecies.try_reconstruct(@species) if @species && !GameData::Species::DATA.key?(@species)
+        return _drawPageEvolution_without_fusions unless fusion_data
+
+        bg_path = "Graphics/Pictures/Pokedex/bg_evolution"
+        bg_path += "_dark" if darkMode?
+        @sprites["background"].setBitmap(_INTL(bg_path))
+        overlay = @sprites["overlay"].bitmap
+        base   = MessageConfig.pbDefaultTextMainColor
+        shadow = MessageConfig.pbDefaultTextShadowColor
+        xLeft  = 36
+
+        for i in @available
+            next unless i[2] == @form
+            fSpecies = GameData::Species.get_species_form(@species, i[2])
+
+            prevolutions  = fSpecies.get_prevolutions
+            allEvolutions = getEvolutionsRecursive(fSpecies)
+
+            coordinateY = 54
+            index = 0
+            @evolutionsArray = []
+
+            # ── Pre-evolutions ─────────────────────────────────────────────────
+            unless prevolutions.empty?
+                drawFormattedTextEx(overlay, xLeft, coordinateY, 450,
+                                    _INTL("<u>Pre-Evolutions</u>"), base, shadow)
+                coordinateY += 34
+
+                seen = {}
+                prevolutions.each do |evolution|
+                    species   = evolution[0]
+                    method    = evolution[1]
+                    parameter = evolution[2]
+                    next if !method || !species || seen[species]
+                    seen[species] = true
+                    speciesData = GameData::Species.get_species_form(species, i[2])
+                    next if speciesData.nil?
+                    @evolutionsArray.push(evolution)
+                    text = _INTL("<b>{1}</b> {2}", speciesData.name,
+                                 describeEvolutionMethod(method, parameter))
+                    color = index == @evolutionIndex ? Color.new(255, 100, 80) : base
+                    drawFormattedTextEx(overlay, xLeft, coordinateY, 450, text, color, shadow)
+                    coordinateY += 30
+                    coordinateY += 30 if overlay.text_size(text).width > 450
+                    index += 1
+                end
+
+                coordinateY += 30
+            end
+
+            # ── Evolutions: flatten, deduplicate, no "(through X)" ─────────────
+            unless allEvolutions.empty?
+                drawFormattedTextEx(overlay, xLeft, coordinateY, 450,
+                                    _INTL("<u>Evolutions</u>"), base, shadow)
+                coordinateY += 34
+
+                seen = {}
+                allEvolutions.each do |_fromSpecies, evolutions|
+                    evolutions.each do |evolution|
+                        species   = evolution[0]
+                        method    = evolution[1]
+                        parameter = evolution[2]
+                        next if method.nil? || species.nil? || seen[species]
+                        seen[species] = true
+                        speciesData = GameData::Species.get_species_form(species, i[2])
+                        next if speciesData.nil?
+                        @evolutionsArray.push(evolution)
+                        text = _INTL("<b>{1}</b> {2}", speciesData.name,
+                                     describeEvolutionMethod(method, parameter))
+                        color = index == @evolutionIndex ? Color.new(255, 100, 80) : base
+                        drawFormattedTextEx(overlay, xLeft, coordinateY, 450, text, color, shadow)
+                        coordinateY += 30
+                        coordinateY += 30 if overlay.text_size(text).width > 450
+                        index += 1
+                    end
+                end
+            end
+
+            if @evolutionsArray.empty?
+                noneLabel = _INTL("None")
+                noneLabelWidth = overlay.text_size(noneLabel).width
+                drawTextEx(overlay, Graphics.width / 2 - noneLabelWidth / 2,
+                            coordinateY + 30, 450, 1, noneLabel, base, shadow)
+            end
+        end
+    end
+
+    # ── pbGetAvailableForms override ──────────────────────────────────────────
     unless method_defined?(:_pbGetAvailableForms_without_fusions)
         alias_method :_pbGetAvailableForms_without_fusions, :pbGetAvailableForms
     end

@@ -245,6 +245,43 @@ module GameData
             return []
         end
 
+        # ── Evolution chain (for MasterDex display) ──────────────────────────────
+        # The inherited methods iterate @evolutions which is always [] for fusions.
+        # Instead, we derive the fusion's evolution/pre-evolution chain dynamically
+        # from the two components, pairing each component's relative with the
+        # unchanged partner to produce the corresponding fusion species ID.
+        #
+        # Example – Bulbasaur/Squirtle (primary=Bulbasaur, secondary=Squirtle):
+        #   get_evolutions  → [:IVYSAUR_SQUIRTLE, :Level, 16]   (primary evolves)
+        #                     [:BULBASAUR_WARTORTLE, :Level, 16] (secondary evolves)
+        #   get_prevolutions → [] (both components are base forms)
+        #
+        # The returned format [species_sym, method_sym, parameter] matches what
+        # GameData::Species#get_evolutions / get_prevolutions normally returns, so
+        # the MasterDex helpers (getEvolutionsRecursive, drawPageEvolution, etc.)
+        # work without any additional changes.
+        def get_evolutions(exclude_invalid = true)
+            result = []
+            @primary_species.get_evolutions(exclude_invalid).each do |evo_species, evo_method, evo_param|
+                result << [:"#{evo_species}_#{@secondary_species.id}", evo_method, evo_param]
+            end
+            @secondary_species.get_evolutions(exclude_invalid).each do |evo_species, evo_method, evo_param|
+                result << [:"#{@primary_species.id}_#{evo_species}", evo_method, evo_param]
+            end
+            return result
+        end
+
+        def get_prevolutions
+            result = []
+            @primary_species.get_prevolutions.each do |prev_species, evo_method, evo_param|
+                result << [:"#{prev_species}_#{@secondary_species.id}", evo_method, evo_param]
+            end
+            @secondary_species.get_prevolutions.each do |prev_species, evo_method, evo_param|
+                result << [:"#{@primary_species.id}_#{prev_species}", evo_method, evo_param]
+            end
+            return result
+        end
+
         private
 
         # Combines two names: first ceil(len/2) characters of the primary name
