@@ -250,18 +250,30 @@ module GameData
             @flags        = (@primary_species.flags + @secondary_species.flags).uniq
             @sticky_items = []
 
-            # Formaliser form list: every valid (primary_form, secondary_form) combination.
-            # The Formaliser reads this and removes the current form, then lets the player
-            # choose from the remainder.  By listing all combinations here, any form-changing
-            # mechanism that uses @formalizer will work automatically.
+            # Formaliser form list: only vary the axes whose base species is
+            # Formaliser-compatible (i.e. the base form has a non-empty @formalizer).
+            # This prevents the Universal Formaliser from accidentally changing an axis
+            # that belongs to a species whose form changes are gated behind a specific
+            # item (e.g. Shaymin via Gracidea, Giratina via Griseous Core).
             num_pf = GameData::FusedSpecies.count_forms(@primary_species.species)
             num_sf = GameData::FusedSpecies.count_forms(@secondary_species.species)
+            pf_base_formalizer = (GameData::Species.get(@primary_species.species).formalizer rescue [])
+            sf_base_formalizer = (GameData::Species.get(@secondary_species.species).formalizer rescue [])
+            pf_formalizable = pf_base_formalizer.any?
+            sf_formalizable = sf_base_formalizer.any?
+
             @formalizer = []
-            num_pf.times do |pf|
-                num_sf.times do |sf|
-                    @formalizer << pf * num_sf + sf
-                end
+            if pf_formalizable && sf_formalizable
+                # Both axes are free to vary.
+                num_pf.times { |pf| num_sf.times { |sf| @formalizer << pf * num_sf + sf } }
+            elsif pf_formalizable
+                # Only vary the primary axis; keep secondary fixed at this instance's sf.
+                num_pf.times { |pf| @formalizer << pf * num_sf + secondary_form }
+            elsif sf_formalizable
+                # Only vary the secondary axis; keep primary fixed at this instance's pf.
+                num_sf.times { |sf| @formalizer << primary_form * num_sf + sf }
             end
+            # If neither is formalizable, @formalizer stays [] and the item says "no effect".
 
             # Register in the fusion cache so GameData::Species.get/:get_species_form
             # can find this instance by its ID without it being in DATA.
