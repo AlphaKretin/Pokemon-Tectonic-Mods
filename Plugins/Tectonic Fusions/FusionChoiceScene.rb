@@ -78,8 +78,9 @@ class FusionChoiceScene
         @sprites["panel_b"].z = Z_PANELS
 
         # ── Pokémon front sprites ────────────────────────────────────────────
-        # Vertically: name row (~34px) + half of expanded sprite area (30px) = 64px from cy.
-        sprite_y = PANEL_Y + CONTENT_INSET + 64
+        # Sprite centre sits 70px below the content top; at zoom=1.0 a 96px sprite
+        # spans cy+22..cy+118, leaving cy+122 clear for the ability/type section.
+        sprite_y = PANEL_Y + CONTENT_INSET + 70
         [[@fusion_a, @pkmn_a, PANEL_A_X, "sprite_a"],
          [@fusion_b, @pkmn_b, PANEL_B_X, "sprite_b"]].each do |fusion, pkmn, px, key|
             @sprites[key] = PokemonSprite.new(@viewport)
@@ -87,8 +88,8 @@ class FusionChoiceScene
             @sprites[key].x      = px + PANEL_W / 2
             @sprites[key].y      = sprite_y
             @sprites[key].z      = Z_SPRITES
-            @sprites[key].zoom_x = 0.5
-            @sprites[key].zoom_y = 0.5
+            @sprites[key].zoom_x = 1.0
+            @sprites[key].zoom_y = 1.0
             begin
                 @sprites[key].setSpeciesBitmap(fusion.id, 0, 0, false, false, false)
             rescue
@@ -172,29 +173,29 @@ class FusionChoiceScene
         pbSetSystemFont(overlay)
         name_base   = selected ? COLOR_GOLD        : base
         name_shadow = selected ? COLOR_GOLD_SHADOW : shadow
-        pbDrawTextPositions(overlay, [[fusion.name, cc, cy, 2, name_base, name_shadow]])
+        pbDrawTextPositions(overlay, [[fusion.name, cc, cy - 4, 2, name_base, name_shadow]])
 
-        # ── Type icons (y = cy+94) ────────────────────────────────────────────
-        ty = cy + 94
-        t1 = fusion.type1
-        t2 = fusion.type2
+        # ── Abilities + type icons (cy+122 to cy+178) ────────────────────────────
+        # Ability text runs in the left column; type icons are stacked vertically
+        # in the right-most 64px (cr-TYPE_ICON_W to cr).
+        # Dual types (28px each, no gap) fill the full 56px section height.
+        # Single type is vertically centred in the 44px ability area.
+        pbSetSmallFont(overlay)
+        t1     = fusion.type1
+        t2     = fusion.type2
+        t1_num = GameData::Type.get(t1).id_number
+        type_x = cr - TYPE_ICON_W
         if t1 == t2
-            t1_num = GameData::Type.get(t1).id_number
-            overlay.blt(cc - TYPE_ICON_W / 2, ty, @typebitmap.bitmap,
+            ty = cy + 122 + (44 - TYPE_ICON_H) / 2   # centre in 44px ability area
+            overlay.blt(type_x, ty, @typebitmap.bitmap,
                         Rect.new(0, t1_num * TYPE_ICON_H, TYPE_ICON_W, TYPE_ICON_H))
         else
-            pair_w = TYPE_ICON_W * 2 + 4
-            tx     = cc - pair_w / 2
-            t1_num = GameData::Type.get(t1).id_number
             t2_num = GameData::Type.get(t2).id_number
-            overlay.blt(tx,                     ty, @typebitmap.bitmap,
+            overlay.blt(type_x, cy + 122,              @typebitmap.bitmap,
                         Rect.new(0, t1_num * TYPE_ICON_H, TYPE_ICON_W, TYPE_ICON_H))
-            overlay.blt(tx + TYPE_ICON_W + 4, ty, @typebitmap.bitmap,
+            overlay.blt(type_x, cy + 122 + TYPE_ICON_H, @typebitmap.bitmap,
                         Rect.new(0, t2_num * TYPE_ICON_H, TYPE_ICON_W, TYPE_ICON_H))
         end
-
-        # ── Abilities (SmallFont; y = cy+122 onwards, 22px per row) ──────────────
-        pbSetSmallFont(overlay)
         fusion.abilities.each_with_index do |abil_id, i|
             abil_name = begin
                             GameData::Ability.get(abil_id).name
@@ -205,10 +206,10 @@ class FusionChoiceScene
         end
 
         # ── Separator before stats ─────────────────────────────────────────────
-        # Ability rows end at cy+166. Gap halved to 4px; separator centred at cy+168.
-        overlay.fill_rect(cx, cy + 168, cw, 1, shadow)
+        # Dual-type section ends at cy+178. 4px gap; separator centred at cy+180.
+        overlay.fill_rect(cx, cy + 180, cw, 1, shadow)
 
-        # ── Stats (SmallFont; y = cy+170 onwards, 22px per row) ───────────────
+        # ── Stats (SmallFont; y = cy+182 onwards, 20px per row) ───────────────
         total_self  = STAT_ORDER.sum { |s| fusion.base_stats[s].to_i }
         total_other = STAT_ORDER.sum { |s| other.base_stats[s].to_i }
 
@@ -217,7 +218,7 @@ class FusionChoiceScene
             val   = fusion.base_stats[stat_id].to_i
             oval  = other.base_stats[stat_id].to_i
             delta = val - oval
-            row_y = cy + 170 + i * 22
+            row_y = cy + 182 + i * 20
             higher = val >= oval
             vc  = higher ? COLOR_GOLD        : base
             vs  = higher ? COLOR_GOLD_SHADOW : shadow
@@ -233,20 +234,20 @@ class FusionChoiceScene
         pbDrawTextPositions(overlay, stat_textpos)
 
         # ── Total ──────────────────────────────────────────────────────────────
-        # Stats end at cy+170+5*22+22=cy+302. Gap halved to 5px; separator centred at cy+304.
+        # Stats end at cy+182+5*20+20=cy+302. 4px gap; separator centred at cy+304.
         overlay.fill_rect(cx, cy + 304, cw, 1, shadow)
         total_delta = total_self - total_other
         tc = (total_self >= total_other) ? COLOR_GOLD        : base
         ts = (total_self >= total_other) ? COLOR_GOLD_SHADOW : shadow
         total_textpos = [
-            [_INTL("Total"), cx,      cy + 307, 0, base, shadow],
-            [total_self.to_s, cr - 50, cy + 307, 1, tc,   ts    ],
+            [_INTL("Total"), cx,      cy + 306, 0, base, shadow],
+            [total_self.to_s, cr - 50, cy + 306, 1, tc,   ts    ],
         ]
         if total_delta != 0
             total_delta_str = total_delta > 0 ? "+#{total_delta}" : "#{total_delta}"
             tdc = total_delta > 0 ? COLOR_GOLD        : shadow
             tds = total_delta > 0 ? COLOR_GOLD_SHADOW : shadow
-            total_textpos << [total_delta_str, cr, cy + 307, 1, tdc, tds]
+            total_textpos << [total_delta_str, cr, cy + 306, 1, tdc, tds]
         end
         pbDrawTextPositions(overlay, total_textpos)
     end
