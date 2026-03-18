@@ -66,6 +66,17 @@ module GameData
                 end
                 return _get_species_form_without_fusions(species, form)
             end
+
+            # ── Cry ─────────────────────────────────────────────────────────
+            unless method_defined?(:_check_cry_file_without_fusions)
+                alias_method :_check_cry_file_without_fusions, :check_cry_file
+            end
+            def check_cry_file(species, form = 0)
+                return _check_cry_file_without_fusions(species, form) if DATA.key?(species)
+                fusion = GameData::FusedSpecies.try_reconstruct(species, form)
+                return nil unless fusion
+                _check_cry_file_without_fusions(fusion.primary_species.species, fusion.primary_species.form)
+            end
         end
     end
 
