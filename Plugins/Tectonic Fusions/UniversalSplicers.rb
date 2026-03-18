@@ -4,6 +4,7 @@
 class Pokemon
     attr_accessor :fusion_primary    # Original primary Pokemon, preserved across the fusion
     attr_accessor :fusion_secondary  # Original secondary Pokemon, preserved across the fusion
+    attr_accessor :fusion_exp_at_fusion  # fusion's exp at the moment of fusing (for unfuse distribution)
 
     def fused_species?
         species_data.is_a?(GameData::FusedSpecies)
@@ -29,7 +30,32 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
         end
         primary   = pkmn.fusion_primary
         secondary = pkmn.fusion_secondary
-        pkmn_idx = $Trainer.party.index(pkmn)
+        pkmn_idx  = $Trainer.party.index(pkmn)
+
+        # Distribute EXP gained while fused: each component receives half.
+        # If the fusion is at the level cap, boost both components to the cap instead
+        # (accounts for EXP that was silently lost against the cap).
+        exp_gained = pkmn.fusion_exp_at_fusion \
+                     ? (pkmn.exp - pkmn.fusion_exp_at_fusion) \
+                     : 0
+        level_cap = getLevelCap
+        at_cap    = level_cap > 0 && pkmn.level >= level_cap
+
+        [primary, secondary].each do |component|
+            if at_cap
+                cap_exp = component.growth_rate.minimum_exp_for_level(level_cap)
+                component.exp = cap_exp if component.exp < cap_exp
+            elsif exp_gained > 0
+                exp_share = (exp_gained / 2.0).floor
+                new_exp   = component.growth_rate.add_exp(component.exp, exp_share)
+                if level_cap > 0
+                    cap_exp = component.growth_rate.minimum_exp_for_level(level_cap)
+                    new_exp = [new_exp, cap_exp].min
+                end
+                component.exp = new_exp
+            end
+        end
+
         $Trainer.party[pkmn_idx] = primary  # restore primary to the same slot
         $Trainer.party.push(secondary)      # append secondary to the end
         scene&.pbHardRefresh
@@ -68,8 +94,9 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
     # Level is the average of both parents.
     fused_level = ((primary_pkmn.level + secondary_pkmn.level) / 2.0).round
     fused       = Pokemon.new(fusion_species.id, fused_level, primary_pkmn.owner)
-    fused.fusion_primary   = primary_pkmn
-    fused.fusion_secondary = secondary_pkmn
+    fused.fusion_primary        = primary_pkmn
+    fused.fusion_secondary      = secondary_pkmn
+    fused.fusion_exp_at_fusion  = fused.exp
 
     # Replace primary_pkmn in-place (preserves its party slot), then remove
     # secondary_pkmn.  Capture secondary's index *before* any mutation to
