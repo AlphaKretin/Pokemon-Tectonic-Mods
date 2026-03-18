@@ -38,9 +38,9 @@ class FusionChoiceScene
     }.freeze
 
     # ── Signature gold accent for higher stats / selected name ───────────────
-    # Matches SIGNATURE_COLOR_LIGHTER / SIGNATURE_COLOR in PokemonPokedexInfo_Scene.
+    # Matches SIGNATURE_COLOR_LIGHTER in PokemonPokedexInfo_Scene.
     COLOR_GOLD        = Color.new(228, 207, 128)
-    COLOR_GOLD_SHADOW = Color.new(211, 175, 44)
+    COLOR_GOLD_SHADOW = darkMode? ? MessageConfig.pbDefaultTextShadowColor : MessageConfig.pbDefaultTextMainColor
 
     # ── Z levels (all within @viewport) ──────────────────────────────────────
     Z_BG      = 0
@@ -80,7 +80,7 @@ class FusionChoiceScene
         # ── Pokémon front sprites ────────────────────────────────────────────
         # Sprite centre sits 70px below the content top; at zoom=1.0 a 96px sprite
         # spans cy+22..cy+118, leaving cy+122 clear for the ability/type section.
-        sprite_y = PANEL_Y + CONTENT_INSET + 70
+        sprite_y = PANEL_Y + CONTENT_INSET + 80
         [[@fusion_a, @pkmn_a, PANEL_A_X, "sprite_a"],
          [@fusion_b, @pkmn_b, PANEL_B_X, "sprite_b"]].each do |fusion, pkmn, px, key|
             @sprites[key] = PokemonSprite.new(@viewport)
@@ -173,9 +173,9 @@ class FusionChoiceScene
         pbSetSystemFont(overlay)
         name_base   = selected ? COLOR_GOLD        : base
         name_shadow = selected ? COLOR_GOLD_SHADOW : shadow
-        pbDrawTextPositions(overlay, [[fusion.name, cc, cy - 4, 2, name_base, name_shadow]])
+        pbDrawTextPositions(overlay, [[fusion.name, cc, cy - 9, 2, name_base, name_shadow]])
 
-        # ── Abilities + type icons (cy+122 to cy+178) ────────────────────────────
+        # ── Abilities + type icons (cy+132 to cy+178) ────────────────────────────
         # Ability text runs in the left column; type icons are stacked vertically
         # in the right-most 64px (cr-TYPE_ICON_W to cr).
         # Dual types (28px each, no gap) fill the full 56px section height.
@@ -186,14 +186,14 @@ class FusionChoiceScene
         t1_num = GameData::Type.get(t1).id_number
         type_x = cr - TYPE_ICON_W
         if t1 == t2
-            ty = cy + 122 + (44 - TYPE_ICON_H) / 2   # centre in 44px ability area
+            ty = cy + 132 + (44 - TYPE_ICON_H) / 2   # centre in 44px ability area
             overlay.blt(type_x, ty, @typebitmap.bitmap,
                         Rect.new(0, t1_num * TYPE_ICON_H, TYPE_ICON_W, TYPE_ICON_H))
         else
             t2_num = GameData::Type.get(t2).id_number
-            overlay.blt(type_x, cy + 122,              @typebitmap.bitmap,
+            overlay.blt(type_x, cy + 132,              @typebitmap.bitmap,
                         Rect.new(0, t1_num * TYPE_ICON_H, TYPE_ICON_W, TYPE_ICON_H))
-            overlay.blt(type_x, cy + 122 + TYPE_ICON_H, @typebitmap.bitmap,
+            overlay.blt(type_x, cy + 132 + TYPE_ICON_H, @typebitmap.bitmap,
                         Rect.new(0, t2_num * TYPE_ICON_H, TYPE_ICON_W, TYPE_ICON_H))
         end
         fusion.abilities.each_with_index do |abil_id, i|
@@ -202,12 +202,12 @@ class FusionChoiceScene
                         rescue
                             abil_id.to_s
                         end
-            pbDrawTextPositions(overlay, [[abil_name, cx, cy + 122 + i * 22, 0, base, shadow]])
+            pbDrawTextPositions(overlay, [[abil_name, cx, cy + 132 + i * 22, 0, base, shadow]])
         end
 
         # ── Separator before stats ─────────────────────────────────────────────
-        # Dual-type section ends at cy+178. 4px gap; separator centred at cy+180.
-        overlay.fill_rect(cx, cy + 180, cw, 1, shadow)
+        # Dual-type section ends at cy+188. 4px gap; separator centred at cy+180.
+        overlay.fill_rect(cx, cy + 190, cw, 1, shadow)
 
         # ── Stats (SmallFont; y = cy+182 onwards, 20px per row) ───────────────
         total_self  = STAT_ORDER.sum { |s| fusion.base_stats[s].to_i }
@@ -226,7 +226,7 @@ class FusionChoiceScene
             stat_textpos << [val.to_s,             cr - 50, row_y, 1, vc,   vs    ]
             if delta != 0
                 delta_str = delta > 0 ? "+#{delta}" : "#{delta}"
-                dc = delta > 0 ? COLOR_GOLD        : shadow
+                dc = delta > 0 ? COLOR_GOLD        : base
                 ds = delta > 0 ? COLOR_GOLD_SHADOW : shadow
                 stat_textpos << [delta_str, cr, row_y, 1, dc, ds]
             end
@@ -235,7 +235,7 @@ class FusionChoiceScene
 
         # ── Total ──────────────────────────────────────────────────────────────
         # Stats end at cy+182+5*20+20=cy+302. 4px gap; separator centred at cy+304.
-        overlay.fill_rect(cx, cy + 304, cw, 1, shadow)
+        overlay.fill_rect(cx, cy + 315, cw, 1, shadow)
         total_delta = total_self - total_other
         tc = (total_self >= total_other) ? COLOR_GOLD        : base
         ts = (total_self >= total_other) ? COLOR_GOLD_SHADOW : shadow
@@ -245,7 +245,7 @@ class FusionChoiceScene
         ]
         if total_delta != 0
             total_delta_str = total_delta > 0 ? "+#{total_delta}" : "#{total_delta}"
-            tdc = total_delta > 0 ? COLOR_GOLD        : shadow
+            tdc = total_delta > 0 ? COLOR_GOLD        : base
             tds = total_delta > 0 ? COLOR_GOLD_SHADOW : shadow
             total_textpos << [total_delta_str, cr, cy + 306, 1, tdc, tds]
         end
@@ -262,7 +262,7 @@ class FusionChoiceScene
         current_secondary = (@selected == 0) ? @pkmn_b   : @pkmn_a
 
         pbPlayDecisionSE
-        cmd = Window_CommandPokemon.new([_INTL("Fuse"), _INTL("View Dex"), _INTL("Cancel")])
+        cmd = Window_CommandPokemon.new([_INTL("Fuse"), _INTL("MasterDex"), _INTL("Cancel")])
         cmd.viewport = @viewport
         cmd.z        = Z_OVERLAY + 10   # ensure it sits above the overlay
         cmd.x        = (Graphics.width  - cmd.width)  / 2
