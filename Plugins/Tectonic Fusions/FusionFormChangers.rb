@@ -46,6 +46,19 @@ def pbFusionFormToggle(pkmn, *species_list, &toggle_fn)
     return nil
 end
 
+# Generic helper: returns [component, :primary|:secondary] for the first fusion
+# component matching +species+, or nil.  Used by absorption-item handlers
+# (DNA Splicers, Reins of Unity, N-Solarizer, N-Lunarizer).
+def pbFusionAbsorbingComponent(pkmn, species)
+    return nil unless pkmn.fused_species?
+    if pkmn.fusion_primary&.isSpecies?(species)
+        return [pkmn.fusion_primary, :primary]
+    elsif pkmn.fusion_secondary&.isSpecies?(species)
+        return [pkmn.fusion_secondary, :secondary]
+    end
+    nil
+end
+
 # ── Universal Formaliser ──────────────────────────────────────────────────────
 # Re-registered to use the CURRENT form's @formalizer instead of form 0's.
 # For regular Pokemon the behaviour is identical (form 0 is always read in the
@@ -283,6 +296,232 @@ ItemHandlers::UseOnPokemon.add(:ZYGARDECUBE, proc { |item, pkmn, scene|
         pbSceneDefaultDisplay(_INTL("Cannot use this item on that Pokemon."), scene)
         next false
     end
+})
+
+# ── DNA Splicers (Kyurem absorption) ─────────────────────────────────────────
+# DNA Splicers absorb Reshiram (form 1) or Zekrom (form 2) into Kyurem.
+# Identical structure to N-Solarizer/N-Lunarizer.
+# Battle form changes (forms 3/4 when entering, revert on leaving) are handled
+# automatically by PokeBattle_RealBattlePeer via the Kyurem MultipleForms handler.
+
+ItemHandlers::UseOnPokemon.add(:DNASPLICERS, proc { |item, pkmn, scene|
+    unless scene&.supportsFusion?
+        pbSceneDefaultDisplay(_INTL("You cannot use this item in this menu."), scene)
+        next false
+    end
+
+    # ── Fusion containing Kyurem ───────────────────────────────────────────
+    result = pbFusionAbsorbingComponent(pkmn, :KYUREM)
+    if result
+        component, axis = result
+
+        if pkmn.fainted?
+            pbSceneDefaultDisplay(_INTL("This can't be used on the fainted Pokémon."), scene)
+            next false
+        end
+
+        if component.fused
+            # Already absorbed — unfuse
+            if $Trainer.party_full?
+                pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."), scene)
+                next false
+            end
+            absorbed  = component.fused
+            new_form  = pbFusionNecrozmaEncode(pkmn, axis, 0)
+            pkmn.setForm(new_form) {
+                component.fused = nil
+                $Trainer.party.push(absorbed)
+                scene&.pbHardRefresh
+                pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+            }
+            next true
+        end
+
+        # Not yet fused — choose Reshiram or Zekrom
+        chosen = scene.pbChoosePokemon(_INTL("Fuse with which Pokémon?"))
+        next false if chosen < 0
+        poke2 = $Trainer.party[chosen]
+        if pkmn == poke2
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with itself."), scene)
+            next false
+        elsif poke2.egg?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with an Egg."), scene)
+            next false
+        elsif poke2.fainted?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that fainted Pokémon."), scene)
+            next false
+        elsif !poke2.isSpecies?(:RESHIRAM) && !poke2.isSpecies?(:ZEKROM)
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that Pokémon."), scene)
+            next false
+        end
+        target_form = poke2.isSpecies?(:RESHIRAM) ? 1 : 2
+        new_form = pbFusionNecrozmaEncode(pkmn, axis, target_form)
+        pkmn.setForm(new_form) {
+            component.fused = poke2
+            $Trainer.remove_pokemon_at_index(chosen)
+            scene&.pbHardRefresh
+            pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+        }
+        next true
+    end
+
+    # ── Original non-fusion logic ──────────────────────────────────────────
+    if !pkmn.isSpecies?(:KYUREM)
+        pbSceneDefaultDisplay(_INTL("It has no effect on Pokémon other than Kyurem."), scene)
+        next false
+    end
+    if pkmn.fainted?
+        pbSceneDefaultDisplay(_INTL("This can't be used on the fainted Pokémon."), scene)
+        next false
+    end
+    if pkmn.fused.nil?
+        chosen = scene.pbChoosePokemon(_INTL("Fuse with which Pokémon?"))
+        next false if chosen < 0
+        poke2 = $Trainer.party[chosen]
+        if pkmn == poke2
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with itself."), scene)
+            next false
+        elsif poke2.egg?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with an Egg."), scene)
+            next false
+        elsif poke2.fainted?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that fainted Pokémon."), scene)
+            next false
+        elsif !poke2.isSpecies?(:RESHIRAM) && !poke2.isSpecies?(:ZEKROM)
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that Pokémon."), scene)
+            next false
+        end
+        newForm = poke2.isSpecies?(:RESHIRAM) ? 1 : 2
+        pkmn.setForm(newForm) {
+            pkmn.fused = poke2
+            $Trainer.remove_pokemon_at_index(chosen)
+            scene&.pbHardRefresh
+            pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+        }
+        next true
+    end
+    if $Trainer.party_full?
+        pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."), scene)
+        next false
+    end
+    pkmn.setForm(0) {
+        $Trainer.party[$Trainer.party.length] = pkmn.fused
+        pkmn.fused = nil
+        scene&.pbHardRefresh
+        pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+    }
+    next true
+})
+
+# ── Reins of Unity (Calyrex absorption) ──────────────────────────────────────
+# Reins of Unity absorb Glastrier (form 1) or Spectrier (form 2) into Calyrex.
+# Same structure as DNA Splicers / N-Solarizer.
+
+ItemHandlers::UseOnPokemon.add(:REINSOFUNITY, proc { |item, pkmn, scene|
+    unless scene&.supportsFusion?
+        pbSceneDefaultDisplay(_INTL("You cannot use this item in this menu."), scene)
+        next false
+    end
+
+    # ── Fusion containing Calyrex ──────────────────────────────────────────
+    result = pbFusionAbsorbingComponent(pkmn, :CALYREX)
+    if result
+        component, axis = result
+
+        if pkmn.fainted?
+            pbSceneDefaultDisplay(_INTL("This can't be used on the fainted Pokémon."), scene)
+            next false
+        end
+
+        if component.fused
+            if $Trainer.party_full?
+                pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."), scene)
+                next false
+            end
+            absorbed = component.fused
+            new_form = pbFusionNecrozmaEncode(pkmn, axis, 0)
+            pkmn.setForm(new_form) {
+                component.fused = nil
+                $Trainer.party.push(absorbed)
+                scene&.pbHardRefresh
+                pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+            }
+            next true
+        end
+
+        chosen = scene.pbChoosePokemon(_INTL("Fuse with which Pokémon?"))
+        next false if chosen < 0
+        poke2 = $Trainer.party[chosen]
+        if pkmn == poke2
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with itself."), scene)
+            next false
+        elsif poke2.egg?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with an Egg."), scene)
+            next false
+        elsif poke2.fainted?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that fainted Pokémon."), scene)
+            next false
+        elsif !poke2.isSpecies?(:GLASTRIER) && !poke2.isSpecies?(:SPECTRIER)
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that Pokémon."), scene)
+            next false
+        end
+        target_form = poke2.isSpecies?(:GLASTRIER) ? 1 : 2
+        new_form = pbFusionNecrozmaEncode(pkmn, axis, target_form)
+        pkmn.setForm(new_form) {
+            component.fused = poke2
+            $Trainer.remove_pokemon_at_index(chosen)
+            scene&.pbHardRefresh
+            pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+        }
+        next true
+    end
+
+    # ── Original non-fusion logic ──────────────────────────────────────────
+    unless pkmn.isSpecies?(:CALYREX)
+        pbSceneDefaultDisplay(_INTL("It has no effect on Pokémon other than Calyrex."), scene)
+        next false
+    end
+    if pkmn.fainted?
+        pbSceneDefaultDisplay(_INTL("This can't be used on the fainted Pokémon."), scene)
+        next false
+    end
+    if pkmn.fused.nil?
+        chosen = scene.pbChoosePokemon(_INTL("Fuse with which Pokémon?"))
+        next false if chosen < 0
+        other_pkmn = $Trainer.party[chosen]
+        if pkmn == other_pkmn
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with itself."), scene)
+            next false
+        elsif other_pkmn.egg?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with an Egg."), scene)
+            next false
+        elsif other_pkmn.fainted?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that fainted Pokémon."), scene)
+            next false
+        elsif !other_pkmn.isSpecies?(:GLASTRIER) && !other_pkmn.isSpecies?(:SPECTRIER)
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that Pokémon."), scene)
+            next false
+        end
+        newForm = other_pkmn.isSpecies?(:GLASTRIER) ? 1 : 2
+        pkmn.setForm(newForm) {
+            pkmn.fused = other_pkmn
+            $Trainer.remove_pokemon_at_index(chosen)
+            scene.pbHardRefresh
+            pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+        }
+        next true
+    end
+    if $Trainer.party_full?
+        pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."))
+        next false
+    end
+    pkmn.setForm(0) {
+        $Trainer.party[$Trainer.party.length] = pkmn.fused
+        pkmn.fused = nil
+        scene.pbHardRefresh
+        pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name))
+    }
+    next true
 })
 
 # ── N-Solarizer / N-Lunarizer (Necrozma absorption) ──────────────────────────
