@@ -1,5 +1,6 @@
 module GameData
-    # Lazy cache for FusedSpecies instances, keyed by their fusion ID symbol.
+    # Lazy cache for FusedSpecies instances, keyed by their fusion ID symbol (form 0)
+    # or [fusion_id_symbol, form_number] for non-zero forms.
     # Lives alongside Species::DATA but is never written to disk.
     # Populated automatically when a FusedSpecies is instantiated.
     class Species
@@ -48,9 +49,17 @@ module GameData
                 alias_method :_get_species_form_without_fusions, :get_species_form
             end
             # Returns a cached (or reconstructed) fusion when the species symbol
-            # is not present in DATA.
+            # is not present in DATA.  For non-zero forms, checks the [id, form]
+            # cache key first so each form combination returns the correct object.
             def get_species_form(species, form)
                 if species.is_a?(Symbol) && !DATA.key?(species)
+                    form_int = form.to_i
+                    if form_int > 0
+                        cache_key = [species, form_int]
+                        return FUSION_CACHE[cache_key] if FUSION_CACHE.key?(cache_key)
+                        reconstructed = GameData::FusedSpecies.try_reconstruct(species, form_int)
+                        return reconstructed if reconstructed
+                    end
                     return FUSION_CACHE[species] if FUSION_CACHE.key?(species)
                     reconstructed = GameData::FusedSpecies.try_reconstruct(species)
                     return reconstructed if reconstructed
@@ -64,9 +73,26 @@ module GameData
     # Properties are calculated from the primary and secondary species rather than loaded from PBS.
     # The primary species contributes the front half of the name and first type;
     # the secondary species contributes the back half of the name and second type.
+    #
+    # Form support: each combination of component forms is a separate "form" of the fusion.
+    # The encoded form number is:  primary_form * count_forms(secondary) + secondary_form
+    # This allows the Universal Formaliser and any other form-changing mechanism to cycle
+    # through all combinations by setting pkmn.form to different values in [0, num_forms).
     class FusedSpecies < Species
         attr_reader :primary_species
         attr_reader :secondary_species
+
+        # Returns the total number of forms a species has (including form 0).
+        # Forms are expected to be sequential (DATA keys :SPECIES_1, :SPECIES_2, …).
+        def self.count_forms(species_id)
+            count = 1
+            i     = 1
+            while GameData::Species::DATA.key?(:"#{species_id}_#{i}")
+                count += 1
+                i     += 1
+            end
+            count
+        end
 
         # Attempts to parse +fusion_id+ as a fusion of two known species by trying
         # every underscore in the string as the primary/secondary split point.  Returns the
@@ -74,30 +100,42 @@ module GameData
         #
         # Works with multi-word species IDs like MR_MIME or TYPE_NULL because it
         # tries ALL split positions, not just the first underscore.
-        def self.try_reconstruct(fusion_id)
+        #
+        # +form+ is the encoded fusion form number; it is decoded into the two component
+        # form indices using count_forms for the secondary species.
+        def self.try_reconstruct(fusion_id, form = 0)
             parts = fusion_id.to_s.split("_")
             return nil if parts.length < 2
             (1...parts.length).each do |i|
-                primary_sym = parts[0...i].join("_").to_sym
+                primary_sym   = parts[0...i].join("_").to_sym
                 secondary_sym = parts[i..].join("_").to_sym
                 next unless GameData::Species::DATA.key?(primary_sym) && GameData::Species::DATA.key?(secondary_sym)
-                return new(primary_sym, secondary_sym) # auto-registers in FUSION_CACHE
+                num_secondary  = count_forms(secondary_sym)
+                primary_form   = form / num_secondary
+                secondary_form = form % num_secondary
+                return new(primary_sym, secondary_sym, primary_form, secondary_form) # auto-registers in FUSION_CACHE
             end
             return nil
         end
 
-        # @param primary [GameData::Species] the species whose front half is used
-        # @param secondary [GameData::Species] the species whose back half is used
-        def initialize(primary, secondary)
-            @primary_species = GameData::Species.get(primary)
-            @secondary_species = GameData::Species.get(secondary)
+        # @param primary        [Symbol] base species ID of the primary component
+        # @param secondary      [Symbol] base species ID of the secondary component
+        # @param primary_form   [Integer] form index of the primary component (default 0)
+        # @param secondary_form [Integer] form index of the secondary component (default 0)
+        def initialize(primary, secondary, primary_form = 0, secondary_form = 0)
+            # Fetch form-specific species data for each component.
+            @primary_species   = GameData::Species.get_species_form(primary, primary_form) \
+                                 || GameData::Species.get(primary)
+            @secondary_species = GameData::Species.get_species_form(secondary, secondary_form) \
+                                 || GameData::Species.get(secondary)
 
-            # Identity
-            @id         = :"#{@primary_species.id}_#{@secondary_species.id}"
+            # Identity: the fusion ID is always based on the BASE species IDs (not form
+            # variant IDs), so all form combinations share the same @id.
+            @id         = :"#{@primary_species.species}_#{@secondary_species.species}"
             @id_number  = -1
             @species    = @id
-            @form       = 0
-            @pokedex_form = 0
+            @form       = primary_form * GameData::FusedSpecies.count_forms(@secondary_species.species) + secondary_form
+            @pokedex_form = @form
 
             # Name and flavour text are stored raw; override name/category/pokedex_entry
             # below so translation helpers are bypassed entirely for fusions.
@@ -184,7 +222,7 @@ module GameData
             @wild_item_rare     = nil
 
             @hatch_steps = [@primary_species.hatch_steps, @secondary_species.hatch_steps].max
-            @evolutions  = [] # Fusions do not evolve
+            @evolutions  = [] # Fusions do not evolve via standard PBS data
 
             # Physical dimensions: average, kept as integer tenths (same as base class)
             @height = ((@primary_species.height + @secondary_species.height) / 2.0).round
@@ -210,12 +248,29 @@ module GameData
 
             # Flags: union of both parents
             @flags        = (@primary_species.flags + @secondary_species.flags).uniq
-            @formalizer   = []
             @sticky_items = []
+
+            # Formaliser form list: every valid (primary_form, secondary_form) combination.
+            # The Formaliser reads this and removes the current form, then lets the player
+            # choose from the remainder.  By listing all combinations here, any form-changing
+            # mechanism that uses @formalizer will work automatically.
+            num_pf = GameData::FusedSpecies.count_forms(@primary_species.species)
+            num_sf = GameData::FusedSpecies.count_forms(@secondary_species.species)
+            @formalizer = []
+            num_pf.times do |pf|
+                num_sf.times do |sf|
+                    @formalizer << pf * num_sf + sf
+                end
+            end
 
             # Register in the fusion cache so GameData::Species.get/:get_species_form
             # can find this instance by its ID without it being in DATA.
-            GameData::Species::FUSION_CACHE[@id] = self
+            # Form-0 entries use the bare ID symbol; non-zero forms use [id, form_num].
+            cache_key = @form == 0 ? @id : [@id, @form]
+            GameData::Species::FUSION_CACHE[cache_key] = self
+            # Ensure the bare symbol key always resolves to something so existence
+            # and identity checks work even if form 0 was never explicitly created.
+            GameData::Species::FUSION_CACHE[@id] ||= self
         end
 
         # Returns the fused display name directly, bypassing the message-hash lookup
@@ -224,8 +279,13 @@ module GameData
             fuse_names(primary_species.name, secondary_species.name)
         end
 
+        # Combines the component form names, separated by " / ".
+        # Returns "" when both components are on their base form (form name is empty).
         def form_name
-            return ""
+            pf_name = (@primary_species.form_name.to_s   rescue "")
+            sf_name = (@secondary_species.form_name.to_s rescue "")
+            parts   = [pf_name, sf_name].reject(&:empty?)
+            return parts.empty? ? "" : parts.join(" / ")
         end
 
         def full_name
@@ -260,24 +320,31 @@ module GameData
         # GameData::Species#get_evolutions / get_prevolutions normally returns, so
         # the MasterDex helpers (getEvolutionsRecursive, drawPageEvolution, etc.)
         # work without any additional changes.
+        #
+        # .species is used (not .id) so that the fusion IDs are always based on the
+        # base species symbol, regardless of which form variant @primary_species is.
         def get_evolutions(exclude_invalid = true)
             result = []
+            primary_sym   = @primary_species.species
+            secondary_sym = @secondary_species.species
             @primary_species.get_evolutions(exclude_invalid).each do |evo_species, evo_method, evo_param|
-                result << [:"#{evo_species}_#{@secondary_species.id}", evo_method, evo_param]
+                result << [:"#{evo_species}_#{secondary_sym}", evo_method, evo_param]
             end
             @secondary_species.get_evolutions(exclude_invalid).each do |evo_species, evo_method, evo_param|
-                result << [:"#{@primary_species.id}_#{evo_species}", evo_method, evo_param]
+                result << [:"#{primary_sym}_#{evo_species}", evo_method, evo_param]
             end
             return result
         end
 
         def get_prevolutions
             result = []
+            primary_sym   = @primary_species.species
+            secondary_sym = @secondary_species.species
             @primary_species.get_prevolutions.each do |prev_species, evo_method, evo_param|
-                result << [:"#{prev_species}_#{@secondary_species.id}", evo_method, evo_param]
+                result << [:"#{prev_species}_#{secondary_sym}", evo_method, evo_param]
             end
             @secondary_species.get_prevolutions.each do |prev_species, evo_method, evo_param|
-                result << [:"#{@primary_species.id}_#{prev_species}", evo_method, evo_param]
+                result << [:"#{primary_sym}_#{prev_species}", evo_method, evo_param]
             end
             return result
         end

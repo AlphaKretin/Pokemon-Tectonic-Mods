@@ -9,6 +9,25 @@ class Pokemon
     def fused_species?
         species_data.is_a?(GameData::FusedSpecies)
     end
+
+    # ── Form-change propagation ───────────────────────────────────────────────
+    # When a fused Pokemon's form changes (e.g. via Universal Formaliser), the
+    # new encoded form is decoded back into (primary_form, secondary_form) and
+    # both stored component Pokemon are updated so they come back with the right
+    # form on unfuse.
+    unless method_defined?(:_set_form_without_fusions)
+        alias_method :_set_form_without_fusions, :form=
+    end
+    def form=(value)
+        if fused_species? && fusion_primary && fusion_secondary
+            num_sf    = GameData::FusedSpecies.count_forms(fusion_secondary.species)
+            new_pf    = value / num_sf
+            new_sf    = value % num_sf
+            fusion_primary.form   = new_pf unless fusion_primary.form   == new_pf
+            fusion_secondary.form = new_sf unless fusion_secondary.form == new_sf
+        end
+        _set_form_without_fusions(value)
+    end
 end
 
 ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
@@ -93,6 +112,9 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
     # Level is the average of both parents.
     fused_level = ((primary_pkmn.level + secondary_pkmn.level) / 2.0).round
     fused       = Pokemon.new(fusion_species.id, fused_level, primary_pkmn.owner)
+    # Set the encoded form BEFORE assigning components so the form= override
+    # does not try to update still-nil fusion_primary/fusion_secondary.
+    fused.form = fusion_species.form if fusion_species.form > 0
     fused.fusion_primary        = primary_pkmn
     fused.fusion_secondary      = secondary_pkmn
     fused.fusion_exp_at_fusion  = fused.exp

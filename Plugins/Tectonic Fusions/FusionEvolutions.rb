@@ -13,7 +13,7 @@
 # so it comes back as the correct evolved species on unfuse.
 class Pokemon
     # Stores pending component evolution info between check and apply phases.
-    # { which: :primary | :secondary, new_species: Symbol }
+    # { which: :primary | :secondary, new_species: Symbol, new_form: Integer }
     attr_accessor :fusion_pending_component_update
 
     # ── Evolution check ──────────────────────────────────────────────────────
@@ -37,8 +37,11 @@ class Pokemon
 
                 new_primary_sym   = (which == :primary)   ? new_component_species : @fusion_primary.species
                 new_secondary_sym = (which == :secondary) ? new_component_species : @fusion_secondary.species
-                new_fusion = GameData::FusedSpecies.new(new_primary_sym, new_secondary_sym)
-                @fusion_pending_component_update = { which: which, new_species: new_component_species }
+                # The evolving component resets to form 0; the unchanged component keeps its form.
+                new_pf = (which == :primary)   ? 0 : @fusion_primary.form
+                new_sf = (which == :secondary) ? 0 : @fusion_secondary.form
+                new_fusion = GameData::FusedSpecies.new(new_primary_sym, new_secondary_sym, new_pf, new_sf)
+                @fusion_pending_component_update = { which: which, new_species: new_component_species, new_form: new_fusion.form }
                 return new_fusion.id
             end
         end
@@ -57,6 +60,11 @@ class Pokemon
             # Updating the stored component's species means unfusing later will
             # correctly return the evolved Pokemon (e.g. Wartortle, not Squirtle).
             component.species = update[:new_species]
+            component.form    = 0  # evolved species resets to its base form
+            # Update own encoded form in case the new species has a different form
+            # count, which would shift the encoding.  Direct @form assignment avoids
+            # recursively triggering the form= component-update hook.
+            @form = update[:new_form] if update[:new_form]
             @fusion_pending_component_update = nil
         end
         _action_after_evolution_without_fusions(new_species)

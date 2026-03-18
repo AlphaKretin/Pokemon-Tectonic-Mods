@@ -91,7 +91,7 @@ class FusionChoiceScene
             @sprites[key].zoom_x = 1.0
             @sprites[key].zoom_y = 1.0
             begin
-                @sprites[key].setSpeciesBitmap(fusion.id, 0, 0, false, false, false)
+                @sprites[key].setSpeciesBitmap(fusion.id, fusion.form, 0, false, false, false)
             rescue
                 @sprites[key].setPokemonBitmap(pkmn, false)
             end
@@ -320,8 +320,8 @@ end
 # Returns { fusion: FusedSpecies, primary: Pokemon, secondary: Pokemon }, or
 # nil if the player cancelled.
 def pbChooseFusion(pkmn_a, pkmn_b)
-    fusion_ab = GameData::FusedSpecies.new(pkmn_a.species, pkmn_b.species)
-    fusion_ba = GameData::FusedSpecies.new(pkmn_b.species, pkmn_a.species)
+    fusion_ab = GameData::FusedSpecies.new(pkmn_a.species, pkmn_b.species, pkmn_a.form, pkmn_b.form)
+    fusion_ba = GameData::FusedSpecies.new(pkmn_b.species, pkmn_a.species, pkmn_b.form, pkmn_a.form)
 
     scene = FusionChoiceScene.new
     scene.pbStartScene(fusion_ab, fusion_ba, pkmn_a, pkmn_b)

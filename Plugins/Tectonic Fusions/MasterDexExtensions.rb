@@ -112,23 +112,44 @@ class PokemonPokedexInfo_Scene
         alias_method :_pbGetAvailableForms_without_fusions, :pbGetAvailableForms
     end
     def pbGetAvailableForms
-        fusion_data = GameData::Species::FUSION_CACHE[@species]
-        unless fusion_data
-            # Also catch fusions that are reconstructable but not yet cached
-            fusion_data = GameData::FusedSpecies.try_reconstruct(@species) if @species && !GameData::Species::DATA.key?(@species)
+        base_fusion = GameData::Species::FUSION_CACHE[@species]
+        unless base_fusion
+            base_fusion = GameData::FusedSpecies.try_reconstruct(@species) if @species && !GameData::Species::DATA.key?(@species)
         end
-        if fusion_data
-            @multiple_forms = false
-            case fusion_data.gender_ratio
-            when :AlwaysFemale
-                return [[_INTL("Female"), 1, 0]]
-            when :Genderless
-                return [[_INTL("One Form"), 0, 0]]
-            else
-                # AlwaysMale or mixed-gender: show a single male entry.
-                return [[_INTL("Male"), 0, 0]]
+        return _pbGetAvailableForms_without_fusions unless base_fusion
+
+        num_pf = GameData::FusedSpecies.count_forms(base_fusion.primary_species.species)
+        num_sf = GameData::FusedSpecies.count_forms(base_fusion.secondary_species.species)
+        total  = num_pf * num_sf
+
+        # Determine the gender value used for all entries (same as single-entry case).
+        gender = case base_fusion.gender_ratio
+                 when :AlwaysFemale then 1
+                 else 0
+                 end
+
+        ret = []
+        total.times do |form_num|
+            pf = form_num / num_sf
+            sf = form_num % num_sf
+            # Retrieve (or create) the FusedSpecies for this specific combination.
+            specific   = GameData::FusedSpecies.new(
+                base_fusion.primary_species.species,
+                base_fusion.secondary_species.species,
+                pf, sf
+            )
+            form_label = specific.form_name
+            if form_label.empty?
+                form_label = case base_fusion.gender_ratio
+                             when :AlwaysFemale then _INTL("Female")
+                             when :Genderless   then (total > 1 ? _INTL("Form %d", form_num) : _INTL("One Form"))
+                             else (total > 1 ? _INTL("Form %d", form_num) : _INTL("Male"))
+                             end
             end
+            ret << [form_label, gender, form_num]
         end
-        return _pbGetAvailableForms_without_fusions
+
+        @multiple_forms = total > 1
+        return ret
     end
 end
