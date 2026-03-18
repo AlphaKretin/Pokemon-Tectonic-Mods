@@ -32,8 +32,15 @@ module InfiniteFusionImport
     GRID_WIDTH = 20
 
     # Pixel stride used when sampling a cell for blank detection.
-    # A smaller value is more accurate but slower; 6 works well for 288px sprites.
+    # A smaller value is more accurate but slower; 6 works well for 96px sprites.
     SAMPLE_STRIDE = 6
+
+    # Integer scale applied to every extracted sprite before saving.
+    # IF custom sprites are 96×96.  Back sprites in Tectonic are 192×192
+    # (exactly 2×), and front sprites are 160×160 (no clean integer scale from
+    # 96), so 2× is used for both — front sprites end up at 192×192, which the
+    # battle system handles fine via metrics.
+    IMPORT_SCALE = 2
 
     # Maps each Infinite Fusion Pokédex number to the corresponding Tectonic
     # species and form.  IF has its own Pokédex order (differing from both the
@@ -731,8 +738,10 @@ module InfiniteFusionImport
                     next
                 end
 
-                sprite_bm = BitmapWrapper.new(sprite_w, sprite_h)
-                sprite_bm.blt(0, 0, sheet_bm, Rect.new(sx, sy, sprite_w, sprite_h))
+                out_w     = sprite_w * IMPORT_SCALE
+                out_h     = sprite_h * IMPORT_SCALE
+                sprite_bm = BitmapWrapper.new(out_w, out_h)
+                sprite_bm.stretch_blt(Rect.new(0, 0, out_w, out_h), sheet_bm, Rect.new(sx, sy, sprite_w, sprite_h))
                 sprite_bm.to_file(front_path) unless front_exists
                 sprite_bm.to_file(back_path)  unless back_exists
                 sprite_bm.dispose
