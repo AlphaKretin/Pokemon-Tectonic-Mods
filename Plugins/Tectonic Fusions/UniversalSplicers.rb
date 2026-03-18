@@ -28,6 +28,22 @@ class Pokemon
         end
         _set_form_without_fusions(value)
     end
+
+    # setForm is a separate method from form= that also accepts a block; override it
+    # too so that item handlers using setForm(n) { ... } also propagate component forms.
+    unless method_defined?(:_set_form_block_without_fusions)
+        alias_method :_set_form_block_without_fusions, :setForm
+    end
+    def setForm(value, &block)
+        if fused_species? && fusion_primary && fusion_secondary
+            num_sf    = GameData::FusedSpecies.count_forms(fusion_secondary.species)
+            new_pf    = value / num_sf
+            new_sf    = value % num_sf
+            fusion_primary.form   = new_pf unless fusion_primary.form   == new_pf
+            fusion_secondary.form = new_sf unless fusion_secondary.form == new_sf
+        end
+        _set_form_block_without_fusions(value, &block)
+    end
 end
 
 ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|

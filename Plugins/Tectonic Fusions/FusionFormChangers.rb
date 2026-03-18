@@ -1,6 +1,6 @@
 # Fusion-aware overrides for form-changing items.
 #
-# Two problems solved here:
+# Three problems solved here:
 #
 # 1. Universal Formaliser reads form-0's @formalizer by default.  For fusions the
 #    correct formalizer depends on the CURRENT form (to keep the non-formalizable
@@ -11,6 +11,11 @@
 #    whose species is not exactly the target.  Fusions pass through this check as
 #    their species is a compound ID.  Each handler is re-registered to also check
 #    the stored component Pokemon, then toggle only that component's form axis.
+#
+# 3. N-Solarizer / N-Lunarizer absorb Solgaleo/Lunala into Necrozma via pkmn.fused.
+#    For fusions containing Necrozma, the absorbed Pokemon is stored in the
+#    Necrozma *component's* .fused attribute, and the fusion's encoded form is
+#    updated to reflect the component's new form.
 #
 # All non-fusion behaviour is preserved verbatim so these overrides are transparent
 # to the rest of the game.
@@ -278,4 +283,259 @@ ItemHandlers::UseOnPokemon.add(:ZYGARDECUBE, proc { |item, pkmn, scene|
         pbSceneDefaultDisplay(_INTL("Cannot use this item on that Pokemon."), scene)
         next false
     end
+})
+
+# ── N-Solarizer / N-Lunarizer (Necrozma absorption) ──────────────────────────
+# These items absorb Solgaleo/Lunala into a Necrozma, changing it to Dusk Mane
+# (form 1) or Dawn Wings (form 2), stored via pkmn.fused.
+#
+# For a Universal Splicer fusion containing Necrozma:
+#   - The absorbed Pokemon is stored in the Necrozma component's .fused attribute.
+#   - The fusion's encoded form is updated to reflect the component's new form.
+#   - Unfusing works in reverse: the component's .fused is released to the party
+#     and the component reverts to form 0.
+#
+# Helper: returns [necrozma_component, :primary|:secondary] for a fused pkmn, or nil.
+def pbFusionNecrozmaComponent(pkmn)
+    return nil unless pkmn.fused_species?
+    if pkmn.fusion_primary&.isSpecies?(:NECROZMA)
+        return [pkmn.fusion_primary, :primary]
+    elsif pkmn.fusion_secondary&.isSpecies?(:NECROZMA)
+        return [pkmn.fusion_secondary, :secondary]
+    end
+    return nil
+end
+
+# Encodes a new fusion form where the Necrozma component is at +necrozma_form+.
+def pbFusionNecrozmaEncode(pkmn, axis, necrozma_form)
+    num_sf  = GameData::FusedSpecies.count_forms(pkmn.fusion_secondary.species)
+    curr_pf = pkmn.form / num_sf
+    curr_sf = pkmn.form % num_sf
+    return (axis == :primary) \
+           ? necrozma_form * num_sf + curr_sf \
+           : curr_pf * num_sf + necrozma_form
+end
+
+ItemHandlers::UseOnPokemon.add(:NSOLARIZER, proc { |item, pkmn, scene|
+    unless scene&.supportsFusion?
+        pbSceneDefaultDisplay(_INTL("You cannot use this item in this menu."), scene)
+        next false
+    end
+
+    # ── Fusion containing Necrozma ─────────────────────────────────────────
+    result = pbFusionNecrozmaComponent(pkmn)
+    if result
+        component, axis = result
+
+        if pkmn.fainted?
+            pbSceneDefaultDisplay(_INTL("This can't be used on the fainted Pokémon."), scene)
+            next false
+        end
+        if component.form == 2
+            # Already Dawn Wings — N-Solarizer can't overwrite
+            pbSceneDefaultDisplay(_INTL("It has no effect on Pokémon other than Necrozma."), scene)
+            next false
+        end
+
+        if component.fused
+            # Dusk Mane — unfuse: release Solgaleo back to party
+            if $Trainer.party_full?
+                pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."), scene)
+                next false
+            end
+            solgaleo = component.fused
+            new_form  = pbFusionNecrozmaEncode(pkmn, axis, 0)
+            pkmn.setForm(new_form) {
+                component.fused = nil
+                $Trainer.party.push(solgaleo)
+                scene&.pbHardRefresh
+                pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+            }
+            next true
+        end
+
+        # Form 0 — fuse with Solgaleo
+        chosen = scene.pbChoosePokemon(_INTL("Fuse with which Pokémon?"))
+        next false if chosen < 0
+        poke2 = $Trainer.party[chosen]
+        if pkmn == poke2
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with itself."), scene)
+            next false
+        elsif poke2.egg?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with an Egg."), scene)
+            next false
+        elsif poke2.fainted?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that fainted Pokémon."), scene)
+            next false
+        elsif !poke2.isSpecies?(:SOLGALEO)
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that Pokémon."), scene)
+            next false
+        end
+        new_form = pbFusionNecrozmaEncode(pkmn, axis, 1)
+        pkmn.setForm(new_form) {
+            component.fused = poke2
+            $Trainer.remove_pokemon_at_index(chosen)
+            scene&.pbHardRefresh
+            pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+        }
+        next true
+    end
+
+    # ── Original non-fusion logic ──────────────────────────────────────────
+    if !pkmn.isSpecies?(:NECROZMA) || pkmn.form == 2
+        pbSceneDefaultDisplay(_INTL("It has no effect on Pokémon other than Necrozma."), scene)
+        next false
+    end
+    if pkmn.fainted?
+        pbSceneDefaultDisplay(_INTL("This can't be used on the fainted Pokémon."), scene)
+        next false
+    end
+    if pkmn.fused.nil?
+        chosen = scene.pbChoosePokemon(_INTL("Fuse with which Pokémon?"))
+        next false if chosen < 0
+        poke2 = $Trainer.party[chosen]
+        if pkmn == poke2
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with itself."), scene)
+            next false
+        elsif poke2.egg?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with an Egg."), scene)
+            next false
+        elsif poke2.fainted?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that fainted Pokémon."), scene)
+            next false
+        elsif !poke2.isSpecies?(:SOLGALEO)
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that Pokémon."), scene)
+            next false
+        end
+        pkmn.setForm(1) {
+            pkmn.fused = poke2
+            $Trainer.remove_pokemon_at_index(chosen)
+            scene&.pbHardRefresh
+            pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+        }
+        next true
+    end
+    if $Trainer.party_full?
+        pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."), scene)
+        next false
+    end
+    pkmn.setForm(0) {
+        $Trainer.party[$Trainer.party.length] = pkmn.fused
+        pkmn.fused = nil
+        scene&.pbHardRefresh
+        pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+    }
+    next true
+})
+
+ItemHandlers::UseOnPokemon.add(:NLUNARIZER, proc { |item, pkmn, scene|
+    unless scene&.supportsFusion?
+        pbSceneDefaultDisplay(_INTL("You cannot use this item in this menu."), scene)
+        next false
+    end
+
+    # ── Fusion containing Necrozma ─────────────────────────────────────────
+    result = pbFusionNecrozmaComponent(pkmn)
+    if result
+        component, axis = result
+
+        if pkmn.fainted?
+            pbSceneDefaultDisplay(_INTL("This can't be used on the fainted Pokémon."), scene)
+            next false
+        end
+        if component.form == 1
+            # Already Dusk Mane — N-Lunarizer can't overwrite
+            pbSceneDefaultDisplay(_INTL("It has no effect on Pokémon other than Necrozma."), scene)
+            next false
+        end
+
+        if component.fused
+            # Dawn Wings — unfuse: release Lunala back to party
+            if $Trainer.party_full?
+                pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."), scene)
+                next false
+            end
+            lunala   = component.fused
+            new_form = pbFusionNecrozmaEncode(pkmn, axis, 0)
+            pkmn.setForm(new_form) {
+                component.fused = nil
+                $Trainer.party.push(lunala)
+                scene&.pbHardRefresh
+                pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+            }
+            next true
+        end
+
+        # Form 0 — fuse with Lunala
+        chosen = scene.pbChoosePokemon(_INTL("Fuse with which Pokémon?"))
+        next false if chosen < 0
+        poke2 = $Trainer.party[chosen]
+        if pkmn == poke2
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with itself."), scene)
+            next false
+        elsif poke2.egg?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with an Egg."), scene)
+            next false
+        elsif poke2.fainted?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that fainted Pokémon."), scene)
+            next false
+        elsif !poke2.isSpecies?(:LUNALA)
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that Pokémon."), scene)
+            next false
+        end
+        new_form = pbFusionNecrozmaEncode(pkmn, axis, 2)
+        pkmn.setForm(new_form) {
+            component.fused = poke2
+            $Trainer.remove_pokemon_at_index(chosen)
+            scene&.pbHardRefresh
+            pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+        }
+        next true
+    end
+
+    # ── Original non-fusion logic ──────────────────────────────────────────
+    if !pkmn.isSpecies?(:NECROZMA) || pkmn.form == 1
+        pbSceneDefaultDisplay(_INTL("It has no effect on Pokémon other than Necrozma."), scene)
+        next false
+    end
+    if pkmn.fainted?
+        pbSceneDefaultDisplay(_INTL("This can't be used on the fainted Pokémon."), scene)
+        next false
+    end
+    if pkmn.fused.nil?
+        chosen = scene.pbChoosePokemon(_INTL("Fuse with which Pokémon?"))
+        next false if chosen < 0
+        poke2 = $Trainer.party[chosen]
+        if pkmn == poke2
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with itself."), scene)
+            next false
+        elsif poke2.egg?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with an Egg."), scene)
+            next false
+        elsif poke2.fainted?
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that fainted Pokémon."), scene)
+            next false
+        elsif !poke2.isSpecies?(:LUNALA)
+            pbSceneDefaultDisplay(_INTL("It cannot be fused with that Pokémon."), scene)
+            next false
+        end
+        pkmn.setForm(2) {
+            pkmn.fused = poke2
+            $Trainer.remove_pokemon_at_index(chosen)
+            scene&.pbHardRefresh
+            pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+        }
+        next true
+    end
+    if $Trainer.party_full?
+        pbSceneDefaultDisplay(_INTL("You have no room to separate the Pokémon."), scene)
+        next false
+    end
+    pkmn.setForm(0) {
+        $Trainer.party[$Trainer.party.length] = pkmn.fused
+        pkmn.fused = nil
+        scene&.pbHardRefresh
+        pbSceneDefaultDisplay(_INTL("{1} changed Forme!", pkmn.name), scene)
+    }
+    next true
 })
