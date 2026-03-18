@@ -97,6 +97,15 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
     fused.fusion_secondary      = secondary_pkmn
     fused.fusion_exp_at_fusion  = fused.exp
 
+    # Moveset: start from the primary's exact current moves, then offer each of
+    # the secondary's moves that aren't already known.  pbLearnMove handles the
+    # full "which move to forget?" UI so the player can accept or decline each one.
+    fused.moves = primary_pkmn.moves.map(&:clone)
+    secondary_pkmn.moves.each do |move|
+        next if fused.hasMove?(move.id)
+        pbLearnMove(fused, move.id)
+    end
+
     # Replace primary_pkmn in-place (preserves its party slot), then remove
     # secondary_pkmn.  Capture secondary's index *before* any mutation to
     # avoid index-shift surprises.
