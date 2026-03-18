@@ -65,7 +65,7 @@ class FusionChoiceScene
 
         # ── Background ──────────────────────────────────────────────────────
         @sprites["bg"] = IconSprite.new(0, 0, @viewport)
-        @sprites["bg"].setBitmap("Graphics/Pictures/Party/bg")
+        @sprites["bg"].setBitmap("Graphics/Pictures/evolutionbg")
         @sprites["bg"].z = Z_BG
 
         # ── Panel windows (game window skin — handles dark/light mode) ───────
