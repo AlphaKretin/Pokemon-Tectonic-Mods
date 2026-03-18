@@ -78,8 +78,8 @@ class FusionChoiceScene
         @sprites["panel_b"].z = Z_PANELS
 
         # ── Pokémon front sprites ────────────────────────────────────────────
-        # Vertically: name row (28px) + half of sprite area (28px) below content top.
-        sprite_y = PANEL_Y + CONTENT_INSET + 28 + 28
+        # Vertically: name row (~34px) + half of expanded sprite area (30px) = 64px from cy.
+        sprite_y = PANEL_Y + CONTENT_INSET + 64
         [[@fusion_a, @pkmn_a, PANEL_A_X, "sprite_a"],
          [@fusion_b, @pkmn_b, PANEL_B_X, "sprite_b"]].each do |fusion, pkmn, px, key|
             @sprites[key] = PokemonSprite.new(@viewport)
@@ -174,8 +174,8 @@ class FusionChoiceScene
         name_shadow = selected ? COLOR_GOLD_SHADOW : shadow
         pbDrawTextPositions(overlay, [[fusion.name, cc, cy, 2, name_base, name_shadow]])
 
-        # ── Type icons (y = cy+84) ────────────────────────────────────────────
-        ty = cy + 84
+        # ── Type icons (y = cy+94) ────────────────────────────────────────────
+        ty = cy + 94
         t1 = fusion.type1
         t2 = fusion.type2
         if t1 == t2
@@ -193,7 +193,7 @@ class FusionChoiceScene
                         Rect.new(0, t2_num * TYPE_ICON_H, TYPE_ICON_W, TYPE_ICON_H))
         end
 
-        # ── Abilities (SmallFont; y = cy+112 onwards, 22px per row) ──────────────
+        # ── Abilities (SmallFont; y = cy+122 onwards, 22px per row) ──────────────
         pbSetSmallFont(overlay)
         fusion.abilities.each_with_index do |abil_id, i|
             abil_name = begin
@@ -201,15 +201,14 @@ class FusionChoiceScene
                         rescue
                             abil_id.to_s
                         end
-            pbDrawTextPositions(overlay, [[abil_name, cx, cy + 112 + i * 22, 0, base, shadow]])
+            pbDrawTextPositions(overlay, [[abil_name, cx, cy + 122 + i * 22, 0, base, shadow]])
         end
 
-        # ── Separator before stats (placed below last ability text) ────────────
-        # Abilities render at cy+112/134+6; SmallFont visual height ~20px → ends ~cy+160.
-        # Separator at cy+163 gives a small clear gap.
-        overlay.fill_rect(cx, cy + 163, cw, 1, shadow)
+        # ── Separator before stats ─────────────────────────────────────────────
+        # Ability rows end at cy+166. Gap halved to 4px; separator centred at cy+168.
+        overlay.fill_rect(cx, cy + 168, cw, 1, shadow)
 
-        # ── Stats (SmallFont; y = cy+165 onwards, 22px per row) ───────────────
+        # ── Stats (SmallFont; y = cy+170 onwards, 22px per row) ───────────────
         total_self  = STAT_ORDER.sum { |s| fusion.base_stats[s].to_i }
         total_other = STAT_ORDER.sum { |s| other.base_stats[s].to_i }
 
@@ -218,7 +217,7 @@ class FusionChoiceScene
             val   = fusion.base_stats[stat_id].to_i
             oval  = other.base_stats[stat_id].to_i
             delta = val - oval
-            row_y = cy + 165 + i * 22
+            row_y = cy + 170 + i * 22
             higher = val >= oval
             vc  = higher ? COLOR_GOLD        : base
             vs  = higher ? COLOR_GOLD_SHADOW : shadow
@@ -233,9 +232,9 @@ class FusionChoiceScene
         end
         pbDrawTextPositions(overlay, stat_textpos)
 
-        # ── Total (separator placed below last stat text) ──────────────────────
-        # Last stat row at cy+165+5*22=cy+275; text ends ~cy+301. Separator at cy+305.
-        overlay.fill_rect(cx, cy + 305, cw, 1, shadow)
+        # ── Total ──────────────────────────────────────────────────────────────
+        # Stats end at cy+170+5*22+22=cy+302. Gap halved to 5px; separator centred at cy+304.
+        overlay.fill_rect(cx, cy + 304, cw, 1, shadow)
         total_delta = total_self - total_other
         tc = (total_self >= total_other) ? COLOR_GOLD        : base
         ts = (total_self >= total_other) ? COLOR_GOLD_SHADOW : shadow
