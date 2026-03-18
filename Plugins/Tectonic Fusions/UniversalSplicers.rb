@@ -46,8 +46,7 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
                 cap_exp = component.growth_rate.minimum_exp_for_level(level_cap)
                 component.exp = cap_exp if component.exp < cap_exp
             elsif exp_gained > 0
-                exp_share = (exp_gained / 2.0).floor
-                new_exp   = component.growth_rate.add_exp(component.exp, exp_share)
+                new_exp = component.growth_rate.add_exp(component.exp, exp_gained)
                 if level_cap > 0
                     cap_exp = component.growth_rate.minimum_exp_for_level(level_cap)
                     new_exp = [new_exp, cap_exp].min
