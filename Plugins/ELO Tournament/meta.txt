@@ -1,0 +1,3 @@
+Name         = ELO Tournament
+Credits      = LunaFlare, Claude
+Requires     = Chasm Testing
