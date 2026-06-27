@@ -1,46 +1,233 @@
 #==============================================================================
-# ELO Tournament — Phase 2 spike
+# ELO Tournament — orchestration
 #
-# Builds the real trainer pool and reports stats, so the pool can be sanity
-# checked before any real orchestration is built on top of it.
+# Runs every ordered pair from the trainer pool through AIBenchmark.runBattle,
+# streaming one JSON line per battle to disk. Designed to survive being
+# interrupted (or crashing) and re-run: resumption is identity-based (skip
+# any pairing that already has a result row), not position-based, so it's
+# robust to the pairing list or pool changing between runs.
+#
+# Two distinct failure modes were found in practice and are both handled:
+#  - A move effect can hit a recoverable error (engine's logonerr/
+#    pbCriticalCode machinery logs it to errorlog.txt and lets the battle
+#    continue) -- the battle "succeeds" but its outcome may be corrupted.
+#    Detected per-battle by diffing errorlog.txt's size around the call.
+#  - A small minority of battles trigger a SystemStackError (likely
+#    unbounded-depth recursion somewhere in AI evaluation, not yet root-
+#    caused) that unwinds straight out of this method, past any rescue here,
+#    aborting the whole process. Not reliably reproducible per pairing
+#    (observed both crashing and succeeding for what should be the same
+#    seeded battle), so retried on resume rather than assumed permanent --
+#    but to avoid an infinite crash loop if a specific pairing genuinely
+#    always crashes, repeated failures on the same pairing get skipped
+#    (recorded, not silently dropped) after a threshold.
 #==============================================================================
 module EloTournament
-    RESULTS_PATH = ENV["ELO_RESULTS_PATH"] || "Analysis/elo_phase2_result.json"
+    RESULTS_PATH       = ENV["ELO_RESULTS_PATH"]       || "Analysis/elo_results.jsonl"
+    STATUS_PATH         = ENV["ELO_STATUS_PATH"]         || "Analysis/elo_status.json"
+    ATTEMPTING_PATH     = ENV["ELO_ATTEMPTING_PATH"]     || "Analysis/elo_attempting.json"
+    CRASH_STREAK_PATH   = ENV["ELO_CRASH_STREAK_PATH"]   || "Analysis/elo_crash_streaks.txt"
+    AI_HEURISTIC_KEY    = (ENV["ELO_AI_HEURISTIC"] || "baseline").to_sym
+    PROGRESS_INTERVAL   = (ENV["ELO_PROGRESS_INTERVAL"] || "25").to_i
+    FORMAT               = (ENV["ELO_FORMAT"] || "singles").to_sym
+    BATTLE_LIMIT         = ENV["ELO_BATTLE_LIMIT"] ? ENV["ELO_BATTLE_LIMIT"].to_i : nil
+    CRASH_THRESHOLD      = (ENV["ELO_CRASH_THRESHOLD"] || "3").to_i
+
+    # Sharding splits the full pairing list across multiple concurrent
+    # Game.exe processes (one per shard), each with its own RESULTS_PATH/
+    # STATUS_PATH/etc set by the launcher, so they never write to the same
+    # files. The modulo split is a deterministic, exhaustive partition --
+    # no two shards (run with the same SHARD_COUNT) ever attempt the same
+    # pairing, so there's no need to cross-check other shards' results.
+    SHARD_INDEX = (ENV["ELO_SHARD_INDEX"] || "0").to_i
+    SHARD_COUNT = (ENV["ELO_SHARD_COUNT"] || "1").to_i
 
     def self.run!
+        heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
+        raise "Unknown heuristic #{AI_HEURISTIC_KEY.inspect}" unless heuristic
+
         pool = buildTrainerPool
+        all_pairs = buildPairs(pool)
+        pairs = []
+        all_pairs.each_with_index { |pair, i| pairs << pair if i % SHARD_COUNT == SHARD_INDEX }
+        total = pairs.length
 
-        size_counts = Hash.new(0)
-        pool.each { |entry| size_counts[entry.party_size] += 1 }
+        completed = readCompletedKeys
+        recordDanglingCrashIfAny(completed)
 
-        rematch = GameData::Trainer.try_get(:LEADER_Lambert, "Lambert", 1)
-        rematch_info = nil
-        if rematch
-            trainer = rematch.to_trainer
-            rematch_info = {
-                label: trainerLabel(rematch),
-                party: trainer.party.map { |p| "#{p.species}:#{p.level}" },
-            }
+        t_start = Time.now
+        ran     = 0
+        done    = completed.length
+
+        pairs.each do |(e1, e2)|
+            break if BATTLE_LIMIT && ran >= BATTLE_LIMIT
+
+            t1, t2 = e1.trainer_data, e2.trainer_data
+            key    = pairKey(t1, t2)
+            next if completed.key?(key)
+
+            seed = battleSeedFromKey(key)
+            writeAttempting(t1, t2, key, seed)
+
+            error_log_before = errorLogSize
+            srand(seed)
+            result = AIBenchmark.runBattle(t1, t2, heuristic, heuristic)
+            had_error = errorLogSize > error_log_before
+
+            appendResult({
+                trainer1: trainerLabel(t1),
+                trainer2: trainerLabel(t2),
+                format: FORMAT.to_s,
+                seed: seed,
+                result: result[:result],
+                rounds: result[:rounds],
+                time_s: result[:time_s],
+                had_error: had_error,
+                curse: e1.curse || e2.curse,
+            })
+            clearCrashStreak(key)
+
+            completed[key] = true
+            done += 1
+            ran  += 1
+            writeStatus(done, total, t_start, ran) if ran % PROGRESS_INTERVAL == 0
         end
 
-        write_result({
-            ok: true,
-            pool_size: pool.length,
-            party_size_histogram: size_counts,
-            sample_trainers: pool.first(5).map { |e| "#{trainerLabel(e.trainer_data)} (#{e.party_size})" },
-            rematch_spot_check: rematch_info,
-        })
+        writeStatus(done, total, t_start, ran, finished: (done >= total))
     rescue => e
-        write_result({
-            ok: false,
+        writeStatus(done || 0, total || 0, t_start || Time.now, ran || 0, error: {
             error_class: e.class.name,
             error_message: e.message,
             backtrace: e.backtrace&.first(20),
         })
     end
 
-    def self.write_result(data)
-        File.open(RESULTS_PATH, "w") { |f| f.write(json_encode(data)) }
+    def self.buildPairs(pool)
+        pairs = []
+        pool.each do |e1|
+            pool.each do |e2|
+                next if e1.trainer_data.equal?(e2.trainer_data)
+                pairs << [e1, e2]
+            end
+        end
+        pairs
+    end
+
+    def self.pairKey(t1, t2)
+        "#{trainerLabel(t1)}|#{trainerLabel(t2)}|#{FORMAT}"
+    end
+
+    # Deterministic, content-derived (not list-position-derived) so it stays
+    # stable for a given matchup even if the pool/pairing order shifts later,
+    # and so a battle can be exactly replayed later from just its identifiers.
+    def self.battleSeedFromKey(key)
+        key.bytes.reduce(5381) { |h, b| ((h << 5) + h) ^ b } & 0xFFFFFFFF
+    end
+
+    # Identity-based resume: every key that already has a result row is done,
+    # regardless of where it sits in the (re-derivable) pairing order.
+    def self.readCompletedKeys
+        keys = {}
+        return keys unless File.exist?(RESULTS_PATH)
+        File.foreach(RESULTS_PATH) do |line|
+            m = line.match(/"trainer1":"((?:[^"\\]|\\.)*)","trainer2":"((?:[^"\\]|\\.)*)","format":"([^"]*)"/)
+            keys["#{m[1]}|#{m[2]}|#{m[3]}"] = true if m
+        end
+        keys
+    end
+
+    # If the previous process died mid-battle, ATTEMPTING_PATH names a pairing
+    # that never got a result row. Track consecutive failures per pairing and
+    # give up on (but still record) one that keeps taking the whole process
+    # down with it, instead of retrying it forever.
+    def self.recordDanglingCrashIfAny(completed)
+        return unless File.exist?(ATTEMPTING_PATH)
+        content = File.read(ATTEMPTING_PATH)
+        m = content.match(/"trainer1":"((?:[^"\\]|\\.)*)","trainer2":"((?:[^"\\]|\\.)*)","format":"([^"]*)","seed":(\d+)/)
+        return unless m
+        key  = "#{m[1]}|#{m[2]}|#{m[3]}"
+        seed = m[4].to_i
+        return if completed.key?(key)
+
+        streaks = readCrashStreaks
+        streaks[key] = (streaks[key] || 0) + 1
+        if streaks[key] >= CRASH_THRESHOLD
+            appendResult({
+                trainer1: m[1], trainer2: m[2], format: m[3], seed: seed,
+                result: nil, rounds: nil, time_s: nil,
+                had_error: true, skipped: true,
+                skip_reason: "process crashed on this pairing #{streaks[key]} times in a row",
+            })
+            completed[key] = true
+            streaks.delete(key)
+        end
+        writeCrashStreaks(streaks)
+    end
+
+    def self.readCrashStreaks
+        streaks = {}
+        return streaks unless File.exist?(CRASH_STREAK_PATH)
+        File.foreach(CRASH_STREAK_PATH) do |line|
+            key, count = line.strip.split("\t")
+            streaks[key] = count.to_i if key
+        end
+        streaks
+    end
+
+    def self.writeCrashStreaks(streaks)
+        File.open(CRASH_STREAK_PATH, "w") do |f|
+            streaks.each { |key, count| f.puts("#{key}\t#{count}") }
+        end
+    end
+
+    def self.clearCrashStreak(key)
+        streaks = readCrashStreaks
+        return unless streaks.delete(key)
+        writeCrashStreaks(streaks)
+    end
+
+    def self.errorLogPath
+        return @error_log_path if @error_log_path
+        @error_log_path = (defined?(RTP) ? RTP.getSaveFileName("errorlog.txt") : "errorlog.txt")
+    end
+
+    def self.errorLogSize
+        File.exist?(errorLogPath) ? File.size(errorLogPath) : 0
+    end
+
+    def self.appendResult(data)
+        File.open(RESULTS_PATH, "a") { |f| f.puts(json_encode(data)) }
+    end
+
+    # Written immediately before each battle and never explicitly cleared, so
+    # if the process dies mid-battle without raising a catchable exception,
+    # this file says exactly which pairing was in flight.
+    def self.writeAttempting(t1, t2, key, seed)
+        File.open(ATTEMPTING_PATH, "w") { |f| f.write(json_encode({
+            trainer1: trainerLabel(t1),
+            trainer2: trainerLabel(t2),
+            format: FORMAT.to_s,
+            seed: seed,
+        })) }
+    end
+
+    def self.writeStatus(done, total, t_start, ran, finished: false, error: nil)
+        elapsed = Time.now - t_start
+        rate = ran > 0 && elapsed > 0 ? ran / elapsed : nil
+        remaining = total - done
+        eta_s = rate && rate > 0 ? (remaining / rate).round : nil
+
+        File.open(STATUS_PATH, "w") { |f| f.write(json_encode({
+            done: done,
+            total: total,
+            percent: total > 0 ? (done * 100.0 / total).round(2) : 0,
+            elapsed_s: elapsed.round(1),
+            rate_per_s: rate&.round(3),
+            eta_s: eta_s,
+            finished: finished,
+            error: error,
+            updated_at: Time.now.to_s,
+        })) }
     end
 
     # mkxp-z's embedded Ruby doesn't ship the json stdlib, so this is a small

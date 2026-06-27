@@ -10,7 +10,7 @@
 # yields them in the first place.
 #==============================================================================
 module EloTournament
-    PoolEntry = Struct.new(:trainer_data, :party_size)
+    PoolEntry = Struct.new(:trainer_data, :party_size, :curse)
 
     # Monument trainers (PBS/trainers_monument.txt) are real content but
     # intentionally out of scope (disjoint rematch/gauntlet roster, per
@@ -21,9 +21,11 @@ module EloTournament
         pool = []
         GameData::Trainer.each do |td|
             next if td.monumentTrainer
-            party_size = td.to_trainer.party.length
+            trainer = td.to_trainer
+            party_size = trainer.party.length
             next if party_size == 0
-            pool.push(PoolEntry.new(td, party_size))
+            curse = trainer.policies.any? { |p| p.to_s.start_with?("CURSE_") }
+            pool.push(PoolEntry.new(td, party_size, curse))
         end
         pool
     end
