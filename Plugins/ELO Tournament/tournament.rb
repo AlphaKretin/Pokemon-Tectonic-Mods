@@ -1,28 +1,34 @@
 #==============================================================================
-# ELO Tournament — Phase 1 spike
+# ELO Tournament — Phase 2 spike
 #
-# Hardcoded single battle to prove the headless path works end to end:
-# boot -> $Trainer stub -> AIBenchmark.runBattle -> result written to disk.
-# Will be replaced by real pairing/orchestration in later phases.
+# Builds the real trainer pool and reports stats, so the pool can be sanity
+# checked before any real orchestration is built on top of it.
 #==============================================================================
 module EloTournament
-    RESULTS_PATH = ENV["ELO_RESULTS_PATH"] || "Analysis/elo_phase1_result.json"
+    RESULTS_PATH = ENV["ELO_RESULTS_PATH"] || "Analysis/elo_phase2_result.json"
 
     def self.run!
-        heuristic = AIBenchmark::HEURISTICS[:baseline]
-        t1 = GameData::Trainer.get(:LEADER_Lambert, "Lambert")
-        t2 = GameData::Trainer.get(:YOUNGSTER, "Joey")
+        pool = buildTrainerPool
 
-        srand(12345)
-        result = AIBenchmark.runBattle(t1, t2, heuristic, heuristic)
+        size_counts = Hash.new(0)
+        pool.each { |entry| size_counts[entry.party_size] += 1 }
+
+        rematch = GameData::Trainer.try_get(:LEADER_Lambert, "Lambert", 1)
+        rematch_info = nil
+        if rematch
+            trainer = rematch.to_trainer
+            rematch_info = {
+                label: trainerLabel(rematch),
+                party: trainer.party.map { |p| "#{p.species}:#{p.level}" },
+            }
+        end
 
         write_result({
             ok: true,
-            trainer1: "#{t1.trainer_type}:#{t1.name}",
-            trainer2: "#{t2.trainer_type}:#{t2.name}",
-            result: result[:result],
-            rounds: result[:rounds],
-            time_s: result[:time_s],
+            pool_size: pool.length,
+            party_size_histogram: size_counts,
+            sample_trainers: pool.first(5).map { |e| "#{trainerLabel(e.trainer_data)} (#{e.party_size})" },
+            rematch_spot_check: rematch_info,
         })
     rescue => e
         write_result({

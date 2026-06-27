@@ -16,6 +16,12 @@ if ENV["ELO_TOURNAMENT"]
 
     def pbCallTitle
         SaveData.load_new_game_values
+        # Trainers with the MATCH_LEVEL_CAP policy scale to the current story
+        # level cap, which is normally raised by map events as the player
+        # progresses. We never enter a map, so it would otherwise sit at its
+        # Game_Variables.new default (0), an invalid Pokemon level. Max it out
+        # so these trainers fight at full strength instead of crashing.
+        setLevelCap(MAX_LEVEL_CAP, false)
         EloTournament.run!
         return nil
     end
