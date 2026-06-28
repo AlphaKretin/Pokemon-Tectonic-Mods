@@ -330,6 +330,10 @@ module AIBenchmark
         battle.party1starts    = [0]
         battle.party2starts    = [0]
         battle.autoTesting     = true
+        # autoTesting's original purpose -- stress-testing boss AI against
+        # randomized opponents -- isn't what we want here: real heuristic-
+        # driven AI vs AI using each side's actual roster and movesets.
+        battle.autoTestingRandomization = false
         battle.controlPlayer   = true
         battle.expGain         = false
         battle.moneyGain       = false

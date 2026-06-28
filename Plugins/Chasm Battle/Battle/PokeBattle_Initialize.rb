@@ -57,6 +57,13 @@ class PokeBattle_Battle
     attr_accessor :battleAI
     attr_accessor :bossBattle
     attr_accessor :autoTesting
+    # Whether autoTesting also randomizes move choices, party species/level/
+    # items, and the active avatar's species (the original behavior). False
+    # disables just the randomization, keeping autoTesting's "no human input
+    # needed" behavior -- for callers that want AI-vs-AI using each
+    # battler's real moveset/roster (e.g. AIBenchmark.runBattle) rather than
+    # stress-testing against randomized opponents.
+    attr_accessor :autoTestingRandomization
     attr_accessor :autoTestingIndex
     attr_accessor :honorAura
     attr_accessor :expStored
@@ -157,6 +164,7 @@ class PokeBattle_Battle
         @messagesBlocked = false
         @bossBattle		   = false
         @autoTesting	   = false
+        @autoTestingRandomization = true
         @autoTestingIndex = 1
         @commandPhasesThisRound = 0
         @honorAura = false
