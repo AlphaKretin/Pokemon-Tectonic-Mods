@@ -101,6 +101,7 @@ module EloTournament
 
         writeStatus(done, total, t_start, ran, finished: (done >= total))
     rescue => e
+        pbPrintException(e) rescue nil
         writeStatus(done || 0, total || 0, t_start || Time.now, ran || 0, error: {
             error_class: e.class.name,
             error_message: e.message,
@@ -108,13 +109,36 @@ module EloTournament
         })
     end
 
+    # Curses (CURSE_* policies) only ever apply to whichever trainer is
+    # passed as the battle's "opponent" -- see Battle_StartAndEnd.rb's
+    # @opponent.each-based triggerBattleStartApplyCurse loop -- so direction
+    # matters for any pair involving a cursed trainer:
+    #  - cursed vs uncursed: only the direction with the cursed trainer as
+    #    opponent actually exercises its curse, so that's the only
+    #    direction worth running.
+    #  - cursed vs cursed: each direction exercises a different trainer's
+    #    curse (never both at once, since only one side is ever "opponent"
+    #    per battle), so both directions are still needed for now to get
+    #    coverage of both curses. (The ideal fix -- applying both sides'
+    #    curses regardless of slot -- is a real engine change, deferred.)
+    #  - uncursed vs uncursed: no curse-driven asymmetry, direction doesn't
+    #    matter, so just pick one.
     def self.buildPairs(pool)
         eligible = pool.select { |e| e.party_size >= MIN_PARTY_SIZE }
         pairs = []
-        eligible.each do |e1|
-            eligible.each do |e2|
-                next if e1.trainer_data.equal?(e2.trainer_data)
-                pairs << [e1, e2]
+        eligible.each_with_index do |e1, i|
+            eligible.each_with_index do |e2, j|
+                next if j <= i
+                if e1.curse && e2.curse
+                    pairs << [e1, e2]
+                    pairs << [e2, e1]
+                elsif e1.curse
+                    pairs << [e2, e1]   # e1 (cursed) as opponent
+                elsif e2.curse
+                    pairs << [e1, e2]   # e2 (cursed) as opponent
+                else
+                    pairs << [e1, e2]   # direction doesn't matter
+                end
             end
         end
         pairs
