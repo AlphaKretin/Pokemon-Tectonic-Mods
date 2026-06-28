@@ -33,6 +33,12 @@ module EloTournament
     BATTLE_LIMIT         = ENV["ELO_BATTLE_LIMIT"] ? ENV["ELO_BATTLE_LIMIT"].to_i : nil
     CRASH_THRESHOLD      = (ENV["ELO_CRASH_THRESHOLD"] || "3").to_i
 
+    # Maps our FORMAT token to the string PokeBattle_Battle#setBattleMode
+    # expects. Anything not recognized there (including "singles") falls
+    # through to its own default of 1v1, which is what we want anyway.
+    BATTLE_MODE = (FORMAT == :doubles) ? "double" : "single"
+    MIN_PARTY_SIZE = (FORMAT == :doubles) ? 2 : 1
+
     # Sharding splits the full pairing list across multiple concurrent
     # Game.exe processes (one per shard), each with its own RESULTS_PATH/
     # STATUS_PATH/etc set by the launcher, so they never write to the same
@@ -71,7 +77,7 @@ module EloTournament
 
             error_log_before = errorLogSize
             srand(seed)
-            result = AIBenchmark.runBattle(t1, t2, heuristic, heuristic)
+            result = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: BATTLE_MODE)
             had_error = errorLogSize > error_log_before
 
             appendResult({
@@ -103,9 +109,10 @@ module EloTournament
     end
 
     def self.buildPairs(pool)
+        eligible = pool.select { |e| e.party_size >= MIN_PARTY_SIZE }
         pairs = []
-        pool.each do |e1|
-            pool.each do |e2|
+        eligible.each do |e1|
+            eligible.each do |e2|
                 next if e1.trainer_data.equal?(e2.trainer_data)
                 pairs << [e1, e2]
             end
