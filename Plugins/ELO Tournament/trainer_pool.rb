@@ -12,6 +12,17 @@
 module EloTournament
     PoolEntry = Struct.new(:trainer_data, :party_size, :curse)
 
+    # CURSE_AVATAR_GUARD inserts a generated avatar Pokemon into the
+    # trainer's own party (AvatarGuard.rb), which sends the AI's switch-
+    # rating evaluation into a near-100-round grind, repeatedly failing
+    # avatar lookups for what looks like an unrelated random species each
+    # time -- not yet root-caused. Only one trainer in the roster carries
+    # this policy (Yezera#9), so it's quarantined here rather than dropped
+    # silently; remove this exclusion once the underlying interaction is
+    # fixed (see Plugins/Chasm Battle/AI/AI_Switch.rb getSwitchRatingForPartyMember
+    # and Plugins/Chasm Battle/AI/AI_Boss.rb from_boss_battler).
+    QUARANTINED_POLICIES = [:CURSE_AVATAR_GUARD]
+
     # Monument trainers (PBS/trainers_monument.txt) are real content but
     # intentionally out of scope (disjoint rematch/gauntlet roster, per
     # design). Everything else with a non-empty resolved party is included —
@@ -24,6 +35,7 @@ module EloTournament
             trainer = td.to_trainer
             party_size = trainer.party.length
             next if party_size == 0
+            next if trainer.policies.any? { |p| QUARANTINED_POLICIES.include?(p) }
             curse = trainer.policies.any? { |p| p.to_s.start_with?("CURSE_") }
             pool.push(PoolEntry.new(td, party_size, curse))
         end
