@@ -12,13 +12,18 @@
 module EloTournament
     PoolEntry = Struct.new(:trainer_data, :party_size, :curse)
 
-    # CURSE_AVATAR_GUARD previously failed "Unknown avatar" lookups against
-    # a stale Data/avatars.dat (PBS data only recompiles on a "debug
-    # compile" launch, which non-debug tournament runs never trigger).
-    # Fixed by a one-time PBS recompile; confirmed via two isolated
-    # single-battle runs of Yezera#9 (different opponents/seeds), both
-    # completing cleanly with no quarantine needed.
-    QUARANTINED_POLICIES = []
+    # CURSE_AVATAR_GUARD inserts a generated avatar Pokemon into the
+    # trainer's party (AvatarGuard.rb) whose species the AI's switch-rating
+    # evaluation then fails to resolve ("Unknown avatar X 0" for X != the
+    # hardcoded LINOONE species -- still not understood why), which seems
+    # to make that evaluation degrade badly enough that some matchups grind
+    # to the engine's 100-round cap (result: 0/undecided, ~175-230s) instead
+    # of resolving normally. Two earlier isolated test seeds happened not to
+    # trigger this and were wrongly taken as proof it was fixed; un-
+    # quarantining needs much more than 2 lucky seeds next time. See
+    # Plugins/Chasm Battle/AI/AI_Switch.rb getSwitchRatingForPartyMember and
+    # Plugins/Chasm Battle/AI/AI_Boss.rb from_boss_battler.
+    QUARANTINED_POLICIES = [:CURSE_AVATAR_GUARD]
 
     # Monument trainers (PBS/trainers_monument.txt) are real content but
     # intentionally out of scope (disjoint rematch/gauntlet roster, per

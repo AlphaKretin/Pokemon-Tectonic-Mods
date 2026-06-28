@@ -297,6 +297,15 @@ module EloTournament
         t2 = GameData::Trainer.get(ENV["ELO_TEST_T2_TYPE"].to_sym, ENV["ELO_TEST_T2_NAME"], (ENV["ELO_TEST_T2_VERSION"] || "0").to_i)
         seed = ENV["ELO_TEST_SEED"].to_i
 
+        if ENV["ELO_TEST_PREBATTLE_ONLY"]
+            srand(seed)
+            File.open("Analysis/single_pairing_test.txt", "w") { |f| f.write(json_encode({
+                pre_battle_t1_species: t1.to_trainer.party.map { |p| p.species.to_s },
+                pre_battle_t2_species: t2.to_trainer.party.map { |p| p.species.to_s },
+            })) }
+            return
+        end
+
         main = Thread.current
         watchdogTimeout = (ENV["ELO_TEST_TIMEOUT"] || "15").to_i
         watcher = Thread.new do
