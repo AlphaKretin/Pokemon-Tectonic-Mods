@@ -86,30 +86,6 @@ if ENV["ELO_TOURNAMENT"]
         end
     end
 
-    # Temporary diagnostic for the CURSE_AVATAR_GUARD "Unknown avatar X 0"
-    # bug: PokeBattle_AI_Boss.from_boss_battler looks up avatar data purely
-    # from battler.pokemon.species/bossVersion, with no indication of which
-    # battler (real vs. a switch-rating fake, whose side, which Pokemon)
-    # triggered it. Wrapping it to capture that context once, instead of
-    # guessing from "Unknown avatar SPECIES 0" alone. Remove once the real
-    # cause is found.
-    class PokeBattle_AI_Boss
-        class << self
-            alias_method :from_boss_battler_preTournament, :from_boss_battler
-            def from_boss_battler(battler)
-                from_boss_battler_preTournament(battler)
-            rescue => e
-                if $aiBenchmarkRunning
-                    pkmn = battler.pokemon
-                    party = battler.battle.pbParty(battler.index)
-                    partyIdx = party.index { |p| p && p.personalID == pkmn.personalID }
-                    raise "#{e.message} | battler.index=#{battler.index} owner=#{battler.battle.pbGetOwnerIndexFromBattlerIndex(battler.index)} pkmn.species=#{pkmn.species.inspect} pkmn.boss?=#{pkmn.boss?} pkmn.bossVersion=#{pkmn.bossVersion.inspect} personalID=#{pkmn.personalID} partyIdx=#{partyIdx.inspect} partyLen=#{party.length} partySpecies=#{party.map { |p| p&.species }.inspect} randomizerOn=#{Randomizer.on?} isRandomizer=#{$PokemonGlobal&.isRandomizer.inspect}"
-                end
-                raise
-            end
-        end
-    end
-
     # On a fresh checkout with no save file, Game.set_up_system blocks on a
     # language-selection prompt before Main ever reaches pbCallTitle. Default
     # straight to the first configured language so first-time unattended runs
@@ -140,6 +116,8 @@ if ENV["ELO_TOURNAMENT"]
         setLevelCap(MAX_LEVEL_CAP, false)
         if ENV["ELO_TEST_SINGLE_PAIRING"]
             EloTournament.testSinglePairing!
+        elsif ENV["ELO_SAVE_REPLAY"]
+            EloTournament.saveReplay!
         else
             EloTournament.run!
         end
