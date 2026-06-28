@@ -308,7 +308,7 @@ module AIBenchmark
     # result: 1 = test side (party1) wins, 2 = baseline side (party2) wins,
     #         0 = draw / timeout
     #--------------------------------------------------------------------------
-    def self.runBattle(trainerData1, trainerData2, heuristic1, heuristic2)
+    def self.runBattle(trainerData1, trainerData2, heuristic1, heuristic2, battleMode: "single")
         trainer1 = trainerData1.to_trainer
         trainer2 = trainerData2.to_trainer
         party1 = trainer1.party
@@ -321,6 +321,12 @@ module AIBenchmark
         battle = PokeBattle_TectonicRecordedBattle.new(
             scene, party1, party2, [trainer1], [trainer2], 1
         )
+        # party1starts/party2starts mark where each *trainer's* segment begins
+        # within a (potentially multi-trainer, tag-team) combined party array
+        # -- unrelated to how many Pokemon are simultaneously active, which
+        # setBattleMode/@sideSizes controls on its own. We always pass exactly
+        # one trainer per side, so this is [0] regardless of battle mode.
+        battle.setBattleMode(battleMode)
         battle.party1starts    = [0]
         battle.party2starts    = [0]
         battle.autoTesting     = true
