@@ -34,7 +34,10 @@ class PokeBattle_DebugSceneNoLogging < PokeBattle_Scene
     def pbBattleArenaBattlers(b1,b2); end
   
     def pbRefresh; end
-  
+
+    def pbHideTurnCountReminder; end
+    def updateTurnCountReminder(turnCount); end
+
     def pbDisplayMessage(msg,brief=false); end
     def pbDisplayPausedMessage(msg); end
     def pbDisplayConfirmMessage(msg); return true; end
