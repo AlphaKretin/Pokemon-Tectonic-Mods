@@ -284,4 +284,27 @@ module EloTournament
             json_encode(obj.to_s)
         end
     end
+
+    # Temporary, one-off diagnostic: run exactly one specific pairing by
+    # explicit identity (no pool scanning, so no risk of accidentally
+    # running more than one battle) and record whatever happens. Identity
+    # and seed come from env vars so this can be pointed at whichever
+    # pairing is currently under investigation without editing code.
+    # Not part of the regular tournament flow -- remove once done.
+    def self.testSinglePairing!
+        heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
+        t1 = GameData::Trainer.get(ENV["ELO_TEST_T1_TYPE"].to_sym, ENV["ELO_TEST_T1_NAME"], (ENV["ELO_TEST_T1_VERSION"] || "0").to_i)
+        t2 = GameData::Trainer.get(ENV["ELO_TEST_T2_TYPE"].to_sym, ENV["ELO_TEST_T2_NAME"], (ENV["ELO_TEST_T2_VERSION"] || "0").to_i)
+        seed = ENV["ELO_TEST_SEED"].to_i
+
+        result = begin
+            srand(seed)
+            r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: ENV["ELO_TEST_FORMAT"] || "single")
+            { ok: true, result: r[:result], rounds: r[:rounds], time_s: r[:time_s] }
+        rescue => e
+            { ok: false, error_class: e.class.name, error_message: e.message, backtrace: e.backtrace&.first(10) }
+        end
+
+        File.open("Analysis/single_pairing_test.txt", "w") { |f| f.write(json_encode(result)) }
+    end
 end

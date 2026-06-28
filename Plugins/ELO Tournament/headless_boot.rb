@@ -102,7 +102,11 @@ if ENV["ELO_TOURNAMENT"]
         # Game_Variables.new default (0), an invalid Pokemon level. Max it out
         # so these trainers fight at full strength instead of crashing.
         setLevelCap(MAX_LEVEL_CAP, false)
-        EloTournament.run!
+        if ENV["ELO_TEST_SINGLE_PAIRING"]
+            EloTournament.testSinglePairing!
+        else
+            EloTournament.run!
+        end
         return nil
     end
 end
