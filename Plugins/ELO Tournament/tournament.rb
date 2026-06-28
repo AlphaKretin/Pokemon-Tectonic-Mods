@@ -297,12 +297,21 @@ module EloTournament
         t2 = GameData::Trainer.get(ENV["ELO_TEST_T2_TYPE"].to_sym, ENV["ELO_TEST_T2_NAME"], (ENV["ELO_TEST_T2_VERSION"] || "0").to_i)
         seed = ENV["ELO_TEST_SEED"].to_i
 
+        main = Thread.current
+        watchdogTimeout = (ENV["ELO_TEST_TIMEOUT"] || "15").to_i
+        watcher = Thread.new do
+            sleep watchdogTimeout
+            main.raise("watchdog: main thread still running after #{watchdogTimeout}s")
+        end
+
         result = begin
             srand(seed)
             r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: ENV["ELO_TEST_FORMAT"] || "single")
             { ok: true, result: r[:result], rounds: r[:rounds], time_s: r[:time_s] }
         rescue => e
-            { ok: false, error_class: e.class.name, error_message: e.message, backtrace: e.backtrace&.first(10) }
+            { ok: false, error_class: e.class.name, error_message: e.message, backtrace: e.backtrace&.first(60) }
+        ensure
+            watcher.kill
         end
 
         File.open("Analysis/single_pairing_test.txt", "w") { |f| f.write(json_encode(result)) }

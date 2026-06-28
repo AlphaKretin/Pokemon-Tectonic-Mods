@@ -95,6 +95,18 @@ if ENV["ELO_TOURNAMENT"]
     end
 
     def pbCallTitle
+        # A "debug" launch recompiles Plugins into Data/PluginScripts.rxdata
+        # before Main ever reaches pbCallTitle, so just reaching this point
+        # at all means that's already done. Used by setup_shards.ps1
+        # -Recompile to detect "compile finished" via a marker file
+        # existing instead of comparing file timestamps across PowerShell/
+        # bash, which kept disagreeing on UTC vs. local time and produced
+        # several false "done" reads earlier this session.
+        if ENV["ELO_COMPILE_ONLY"]
+            File.open("Analysis/compile_done.txt", "w") { |f| f.write(Time.now.to_s) }
+            exit
+        end
+
         SaveData.load_new_game_values
         # Trainers with the MATCH_LEVEL_CAP policy scale to the current story
         # level cap, which is normally raised by map events as the player

@@ -23,18 +23,6 @@ module EloTournament
     # and Plugins/Chasm Battle/AI/AI_Boss.rb from_boss_battler).
     QUARANTINED_POLICIES = [:CURSE_AVATAR_GUARD]
 
-    # PARADOXHERB + MIRRORHERB held simultaneously on the same Pokemon
-    # produces a reproducible hang (confirmed via isolated single-battle
-    # testing, seed 2786941428) as soon as the enemy raises any stat: both
-    # items trigger off the same ItemOnEnemyStatGain event and get consumed
-    # in the same block in Battler_UseMove_TriggerEffects.rb (Mirror Herb
-    # copies the gain onto the holder via pbRaiseMultipleStatSteps, Paradox
-    # Herb resets the enemy's steps via resetStatSteps) -- not yet root-
-    # caused beyond that. YOUNGSTER Joey's Lilligant is built specifically
-    # to exercise this combo, so it's not a PBS data mistake to just
-    # un-equip; quarantine until the actual loop is found and fixed.
-    QUARANTINED_ITEM_COMBOS = [[:PARADOXHERB, :MIRRORHERB]]
-
     # Monument trainers (PBS/trainers_monument.txt) are real content but
     # intentionally out of scope (disjoint rematch/gauntlet roster, per
     # design). Everything else with a non-empty resolved party is included —
@@ -48,7 +36,6 @@ module EloTournament
             party_size = trainer.party.length
             next if party_size == 0
             next if trainer.policies.any? { |p| QUARANTINED_POLICIES.include?(p) }
-            next if trainer.party.any? { |pkmn| QUARANTINED_ITEM_COMBOS.any? { |combo| (combo - pkmn.items).empty? } }
             curse = trainer.policies.any? { |p| p.to_s.start_with?("CURSE_") }
             pool.push(PoolEntry.new(td, party_size, curse))
         end
