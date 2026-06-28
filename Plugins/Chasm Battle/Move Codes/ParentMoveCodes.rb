@@ -1234,7 +1234,7 @@ class PokeBattle_PartyMemberEffectMove < PokeBattle_Move
 
     def pbEffectGeneral(user)
         selectedPokemon = selectPartyMemberForEffect(user.index, proc { |pkmn| next legalChoice(pkmn) })
-        effectOnPartyMember(selectedPokemon)
+        effectOnPartyMember(selectedPokemon) if selectedPokemon
     end
 end
 
