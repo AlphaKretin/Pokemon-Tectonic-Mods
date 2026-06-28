@@ -146,10 +146,11 @@ class PokeBattle_Move
 
     def selectPartyMemberForEffect(idxBattler, selectableProc = nil)
         if @battle.pbOwnedByPlayer?(idxBattler)
-            return playerChoosesPartyMemberForEffect(idxBattler, selectableProc)[0]
+            result = playerChoosesPartyMemberForEffect(idxBattler, selectableProc)
         else
-            return trainerChoosesPartyMemberForEffect(idxBattler, selectableProc)[0]
+            result = trainerChoosesPartyMemberForEffect(idxBattler, selectableProc)
         end
+        return result ? result[0] : nil
     end
 
     def selectPartyMemberForSwitchEffect(idxBattler, selectableProc = nil)
