@@ -109,6 +109,19 @@ module EloTournament
         })
     end
 
+    # Set to sample sparse, roughly-even-degree matchups instead of a full
+    # round robin -- e.g. for a fast prototype pass across the whole
+    # roster while a full round robin's cost is evaluated separately. nil
+    # (default) keeps the full round robin.
+    SAMPLE_GAMES_PER_TRAINER = ENV["ELO_SAMPLE_GAMES_PER_TRAINER"] ? ENV["ELO_SAMPLE_GAMES_PER_TRAINER"].to_i : nil
+    SAMPLE_SEED = (ENV["ELO_SAMPLE_SEED"] || "1").to_i
+
+    def self.buildPairs(pool)
+        eligible = pool.select { |e| e.party_size >= MIN_PARTY_SIZE }
+        edges = SAMPLE_GAMES_PER_TRAINER ? sampledEdges(eligible, SAMPLE_GAMES_PER_TRAINER, SAMPLE_SEED) : allEdges(eligible)
+        edges.flat_map { |e1, e2| pairsForEdge(e1, e2) }
+    end
+
     # Curses (CURSE_* policies) only ever apply to whichever trainer is
     # passed as the battle's "opponent" -- see Battle_StartAndEnd.rb's
     # @opponent.each-based triggerBattleStartApplyCurse loop -- so direction
@@ -123,25 +136,54 @@ module EloTournament
     #    curses regardless of slot -- is a real engine change, deferred.)
     #  - uncursed vs uncursed: no curse-driven asymmetry, direction doesn't
     #    matter, so just pick one.
-    def self.buildPairs(pool)
-        eligible = pool.select { |e| e.party_size >= MIN_PARTY_SIZE }
-        pairs = []
+    def self.pairsForEdge(e1, e2)
+        if e1.curse && e2.curse
+            [[e1, e2], [e2, e1]]
+        elsif e1.curse
+            [[e2, e1]]   # e1 (cursed) as opponent
+        elsif e2.curse
+            [[e1, e2]]   # e2 (cursed) as opponent
+        else
+            [[e1, e2]]   # direction doesn't matter
+        end
+    end
+
+    def self.allEdges(eligible)
+        edges = []
         eligible.each_with_index do |e1, i|
             eligible.each_with_index do |e2, j|
                 next if j <= i
-                if e1.curse && e2.curse
-                    pairs << [e1, e2]
-                    pairs << [e2, e1]
-                elsif e1.curse
-                    pairs << [e2, e1]   # e1 (cursed) as opponent
-                elsif e2.curse
-                    pairs << [e1, e2]   # e2 (cursed) as opponent
-                else
-                    pairs << [e1, e2]   # direction doesn't matter
-                end
+                edges << [e1, e2]
             end
         end
-        pairs
+        edges
+    end
+
+    # Configuration-model-style random graph: give every trainer
+    # gamesPerTrainer "stubs", shuffle all stubs together, pair up
+    # consecutive stubs into edges. Self-pairs and repeats of an already-
+    # sampled pair are dropped rather than retried, which costs a small
+    # amount of degree from whoever's involved rather than introducing
+    # any systematic bias toward a particular trainer. Deterministic for
+    # a given (pool order, gamesPerTrainer, seed), matching the rest of
+    # this file's identity-based resumability.
+    def self.sampledEdges(eligible, gamesPerTrainer, seed)
+        rng = Random.new(seed)
+        stubs = []
+        eligible.each_index { |i| gamesPerTrainer.times { stubs << i } }
+        stubs.shuffle!(random: rng)
+
+        seenPairs = {}
+        edges = []
+        (0...(stubs.length - 1)).step(2) do |i|
+            a, b = stubs[i], stubs[i + 1]
+            next if a == b
+            key = a < b ? [a, b] : [b, a]
+            next if seenPairs[key]
+            seenPairs[key] = true
+            edges << [eligible[a], eligible[b]]
+        end
+        edges
     end
 
     def self.pairKey(t1, t2)
