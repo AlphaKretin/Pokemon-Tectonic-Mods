@@ -93,8 +93,15 @@ class PokeBattle_Battle
     alias_method :pbSetSeen_preBenchmark, :pbSetSeen
 
     # pbSetSeen calls pbPlayer.pokedex, which doesn't exist on NPCTrainer.
+    # @benchmarkMode guards the original AI-vs-AI battle, but isn't part of
+    # what gets saved/restored for a recording, so it's false again on
+    # playback. @is_replayed is restored (see PokeBattle_Recording.rb) and
+    # the same reasoning applies: pbPlayer during playback is whichever
+    # trainer occupied the player slot in the original battle (possibly
+    # another NPCTrainer, not necessarily $Trainer), so this crashed on
+    # watching a saved replay too.
     def pbSetSeen(battler)
-        return if @benchmarkMode
+        return if @benchmarkMode || @is_replayed
         pbSetSeen_preBenchmark(battler)
     end
 
@@ -348,6 +355,26 @@ module AIBenchmark
         # was set, so we redo it now with the correct heuristics in place.
         party1.each { |p| battle.initializeKnownMoves(p) }
         party2.each { |p| battle.initializeKnownMoves(p) }
+
+        # There's no real map for a synthetic AI-vs-AI battle, so @backdrop
+        # stays at PokeBattle_Initialize's "" default -- fine under the no-UI
+        # benchmark scene, but a saved-and-watched replay then resolves to a
+        # nonexistent "Graphics/Battlebacks/_bg" and shows nothing. "indoor1"
+        # is the same fallback Overworld_BattleStarting.rb's pbPrepareBattle
+        # uses when there's no map/battleRules backdrop to go on. Must happen
+        # *before* registerRules, which snapshots @backdrop into
+        # @battle_rules["backdrop"] -- replay playback re-applies that
+        # snapshot (PokeBattle_Recording.rb's rules-replay loop) and would
+        # otherwise stomp this back to "" with the stale pre-fix value.
+        battle.backdrop = "indoor1" if saveBattle
+
+        # Every normal battle-starting path (TrainerBattles.rb, WildBattles.rb,
+        # BossBattles.rb) calls this before pbStartBattle -- it's what populates
+        # @battle_rules, which saveBattle marshals into the recording's :rules
+        # field. Skipping it left saved replays with :rules => Marshal.dump(nil),
+        # crashing the viewer's Marshal.load(...).each_pair on load. Only needed
+        # when actually saving.
+        battle.registerRules if saveBattle
 
         result  = battle.pbStartBattle
         $aiBenchmarkRunning = false

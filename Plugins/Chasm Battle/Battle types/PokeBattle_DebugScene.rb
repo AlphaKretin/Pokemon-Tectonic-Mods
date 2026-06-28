@@ -38,6 +38,9 @@ class PokeBattle_DebugSceneNoLogging < PokeBattle_Scene
     def pbHideTurnCountReminder; end
     def updateTurnCountReminder(turnCount); end
 
+    def setAvatarTargetReticlesOff; end
+    def setAvatarTargetReticleOnIndex(index,extraAggro=false); end
+
     def pbDisplayMessage(msg,brief=false); end
     def pbDisplayPausedMessage(msg); end
     def pbDisplayConfirmMessage(msg); return true; end

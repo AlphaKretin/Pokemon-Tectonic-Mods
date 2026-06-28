@@ -41,6 +41,7 @@ class PokeBattle_Battle
     end
 
     def pbDisplayBossNarration(msg)
+        return unless showMessages?
         @scene.sprites["messageWindow"].visible = false
         @scene.sprites["messageBox"].visible = false
         windowSkinName = "speech_avatar"
