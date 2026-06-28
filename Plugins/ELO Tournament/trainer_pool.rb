@@ -12,18 +12,15 @@
 module EloTournament
     PoolEntry = Struct.new(:trainer_data, :party_size, :curse)
 
-    # CURSE_AVATAR_GUARD inserts a generated avatar Pokemon into the
-    # trainer's party (AvatarGuard.rb) whose species the AI's switch-rating
-    # evaluation then fails to resolve ("Unknown avatar X 0" for X != the
-    # hardcoded LINOONE species -- still not understood why), which seems
-    # to make that evaluation degrade badly enough that some matchups grind
-    # to the engine's 100-round cap (result: 0/undecided, ~175-230s) instead
-    # of resolving normally. Two earlier isolated test seeds happened not to
-    # trigger this and were wrongly taken as proof it was fixed; un-
-    # quarantining needs much more than 2 lucky seeds next time. See
-    # Plugins/Chasm Battle/AI/AI_Switch.rb getSwitchRatingForPartyMember and
-    # Plugins/Chasm Battle/AI/AI_Boss.rb from_boss_battler.
-    QUARANTINED_POLICIES = [:CURSE_AVATAR_GUARD]
+    # CURSE_AVATAR_GUARD's "Unknown avatar X" crash is fixed (real root
+    # cause: autoTesting's built-in randomization reassigning the active
+    # avatar's species, not anything specific to the avatar mechanic --
+    # see battle.autoTestingRandomization in AIBenchmark.runBattle).
+    # Confirmed via the test harness against multiple seeds, not just one
+    # or two -- the earlier two "confirmed fixed" calls this session were
+    # both wrong because the real bug was never reproduced standalone
+    # *correctly* until this fix actually addressed it.
+    QUARANTINED_POLICIES = []
 
     # Monument trainers (PBS/trainers_monument.txt) are real content but
     # intentionally out of scope (disjoint rematch/gauntlet roster, per
