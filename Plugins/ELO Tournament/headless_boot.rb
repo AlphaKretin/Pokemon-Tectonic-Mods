@@ -118,6 +118,8 @@ if ENV["ELO_TOURNAMENT"]
             EloTournament.testSinglePairing!
         elsif ENV["ELO_SAVE_REPLAY"]
             EloTournament.saveReplay!
+        elsif ENV["ELO_RUN_BRACKET"]
+            EloTournament.runBracket!
         else
             EloTournament.run!
         end
