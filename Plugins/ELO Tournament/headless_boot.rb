@@ -67,6 +67,25 @@ if ENV["ELO_TOURNAMENT"]
         end
     end
 
+    # pbStartOfRoundPhase runs exactly once per round, right at the top of
+    # pbBattleLoop -- a clean per-round heartbeat. A 100-round battle that's
+    # genuinely just slow (e.g. two heavy-sustain teams that can't finish
+    # each other off) can legitimately take 140s+, well past what looked
+    # like a safe stall threshold; but a turn that's actually stuck hangs
+    # immediately. Writing the current round number lets an external
+    # watchdog tell those two cases apart instead of conflating them into
+    # one whole-battle timer.
+    class PokeBattle_Battle
+        alias_method :pbStartOfRoundPhase_preTournament, :pbStartOfRoundPhase
+        def pbStartOfRoundPhase
+            if $aiBenchmarkRunning
+                path = ENV["ELO_TURN_HEARTBEAT_PATH"] || "Analysis/elo_turn_heartbeat.json"
+                File.open(path, "w") { |f| f.write("{\"turn\":#{@turnCount},\"updated_at\":\"#{Time.now}\"}") }
+            end
+            pbStartOfRoundPhase_preTournament
+        end
+    end
+
     # On a fresh checkout with no save file, Game.set_up_system blocks on a
     # language-selection prompt before Main ever reaches pbCallTitle. Default
     # straight to the first configured language so first-time unattended runs
