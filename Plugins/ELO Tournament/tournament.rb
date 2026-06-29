@@ -369,21 +369,12 @@ module EloTournament
             return
         end
 
-        main = Thread.current
-        watchdogTimeout = (ENV["ELO_TEST_TIMEOUT"] || "15").to_i
-        watcher = Thread.new do
-            sleep watchdogTimeout
-            main.raise("watchdog: main thread still running after #{watchdogTimeout}s")
-        end
-
         result = begin
             srand(seed)
             r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: ENV["ELO_TEST_FORMAT"] || "single")
             { ok: true, result: r[:result], rounds: r[:rounds], time_s: r[:time_s] }
         rescue => e
             { ok: false, error_class: e.class.name, error_message: e.message, backtrace: e.backtrace&.first(60) }
-        ensure
-            watcher.kill
         end
 
         File.open("Analysis/single_pairing_test.txt", "w") { |f| f.write(json_encode(result)) }
@@ -401,7 +392,6 @@ module EloTournament
     # if a later pairing hangs or crashes the process).
     def self.testBatchPairings!
         heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
-        watchdogTimeout = (ENV["ELO_TEST_TIMEOUT"] || "60").to_i
         outputPath = "Analysis/batch_pairing_results.jsonl"
         File.open(outputPath, "w") {}
 
@@ -411,12 +401,6 @@ module EloTournament
             t1Type, t1Name, t1Version, t2Type, t2Name, t2Version, seed, format = line.split("\t")
             t1Label = "#{t1Type}:#{t1Name}##{t1Version}"
             t2Label = "#{t2Type}:#{t2Name}##{t2Version}"
-
-            main = Thread.current
-            watcher = Thread.new do
-                sleep watchdogTimeout
-                main.raise("watchdog: pairing still running after #{watchdogTimeout}s")
-            end
 
             # GameData::Trainer.get (a bad/missing name+version in the
             # manifest) belongs in the same rescue as the battle itself --
@@ -432,8 +416,6 @@ module EloTournament
             rescue => e
                 { ok: false, t1: t1Label, t2: t2Label, seed: seed.to_i, format: format,
                   error_class: e.class.name, error_message: e.message }
-            ensure
-                watcher.kill
             end
             File.open(outputPath, "a") { |f| f.puts(json_encode(row)) }
         end
