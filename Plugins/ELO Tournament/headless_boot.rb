@@ -113,7 +113,7 @@ if ENV["ELO_TOURNAMENT"]
         end
 
         class PokeBattle_AI
-            %i[pbEnemyShouldWithdraw? pbGetBestTrainerMoveChoices estimateSwitchScoreCeiling].each do |phase|
+            %i[pbEnemyShouldWithdraw? pbGetBestTrainerMoveChoices estimateSwitchScoreCeiling pbScorePredictedPlayerMoves pbGetMoveScore].each do |phase|
                 alias_method :"#{phase}_preProfile", phase
                 define_method(phase) do |*args, **kwargs|
                     t0 = Time.now
@@ -158,6 +158,9 @@ if ENV["ELO_TOURNAMENT"]
         setLevelCap(MAX_LEVEL_CAP, false)
         if ENV["ELO_TEST_SINGLE_PAIRING"]
             EloTournament.testSinglePairing!
+            dump_profile_timing! if ENV["ELO_PROFILE_TIMING"]
+        elsif ENV["ELO_TEST_BATCH_PAIRINGS"]
+            EloTournament.testBatchPairings!
             dump_profile_timing! if ENV["ELO_PROFILE_TIMING"]
         elsif ENV["ELO_SAVE_REPLAY"]
             EloTournament.saveReplay!

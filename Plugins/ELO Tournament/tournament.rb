@@ -367,4 +367,54 @@ module EloTournament
 
         File.open("Analysis/single_pairing_test.txt", "w") { |f| f.write(json_encode(result)) }
     end
+
+    # Same diagnostic purpose as testSinglePairing!, but for running many
+    # pairings without paying a fresh Game.exe boot + Plugin recompile per
+    # pairing -- that per-launch overhead dominated wall-clock time once
+    # ad hoc calibration/regression batches grew past a handful of battles.
+    # Manifest is a tab-separated file (one pairing per line: t1Type, t1Name,
+    # t1Version, t2Type, t2Name, t2Version, seed, format), path given via
+    # ELO_TEST_BATCH_PAIRINGS. Results stream to
+    # Analysis/batch_pairing_results.jsonl (truncated at the start of the
+    # run, then appended one line per pairing so partial progress survives
+    # if a later pairing hangs or crashes the process).
+    def self.testBatchPairings!
+        heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
+        watchdogTimeout = (ENV["ELO_TEST_TIMEOUT"] || "60").to_i
+        outputPath = "Analysis/batch_pairing_results.jsonl"
+        File.open(outputPath, "w") {}
+
+        File.readlines(ENV["ELO_TEST_BATCH_PAIRINGS"]).each do |line|
+            line = line.strip
+            next if line.empty? || line.start_with?("#")
+            t1Type, t1Name, t1Version, t2Type, t2Name, t2Version, seed, format = line.split("\t")
+            t1Label = "#{t1Type}:#{t1Name}##{t1Version}"
+            t2Label = "#{t2Type}:#{t2Name}##{t2Version}"
+
+            main = Thread.current
+            watcher = Thread.new do
+                sleep watchdogTimeout
+                main.raise("watchdog: pairing still running after #{watchdogTimeout}s")
+            end
+
+            # GameData::Trainer.get (a bad/missing name+version in the
+            # manifest) belongs in the same rescue as the battle itself --
+            # it's a per-row failure, not a reason to abort every remaining
+            # pairing in the batch.
+            row = begin
+                t1 = GameData::Trainer.get(t1Type.to_sym, t1Name, t1Version.to_i)
+                t2 = GameData::Trainer.get(t2Type.to_sym, t2Name, t2Version.to_i)
+                srand(seed.to_i)
+                r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: format)
+                { ok: true, t1: t1Label, t2: t2Label, seed: seed.to_i, format: format,
+                  result: r[:result], rounds: r[:rounds], time_s: r[:time_s] }
+            rescue => e
+                { ok: false, t1: t1Label, t2: t2Label, seed: seed.to_i, format: format,
+                  error_class: e.class.name, error_message: e.message }
+            ensure
+                watcher.kill
+            end
+            File.open(outputPath, "a") { |f| f.puts(json_encode(row)) }
+        end
+    end
 end
