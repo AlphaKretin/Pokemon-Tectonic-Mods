@@ -20,7 +20,13 @@ module EloTournament
     # or two -- the earlier two "confirmed fixed" calls this session were
     # both wrong because the real bug was never reproduced standalone
     # *correctly* until this fix actually addressed it.
-    QUARANTINED_POLICIES = []
+    #
+    # ALLOW_RANDOM_MOVES (only ROLLERSKATER_F:Attea as of 2026-06-28) is
+    # quarantined because its strategy is genuinely chaotic (forced
+    # random move selection), not because dev/joke trainers as a category
+    # are out of scope -- most DEVELOPER-type trainers are real curated
+    # teams worth ranking and stay in the pool.
+    QUARANTINED_POLICIES = [:ALLOW_RANDOM_MOVES]
 
     # Monument trainers (PBS/trainers_monument.txt) are real content but
     # intentionally out of scope (disjoint rematch/gauntlet roster, per
