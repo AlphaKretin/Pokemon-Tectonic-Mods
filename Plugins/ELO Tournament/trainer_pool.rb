@@ -65,6 +65,10 @@ module EloTournament
     # merged) policies and party, by way of td.to_trainer -- the same
     # resolution real battles use -- rather than re-deriving PBS inheritance
     # rules in Python, which would be easy to get subtly wrong.
+    #
+    # p.tribes (not a plain species lookup -- FRIENDTOALL/WILDCARD make a
+    # Pokemon count for every tribe, see Pokemon#tribes) and p.moves' name/type
+    # are resolved the same way, for the same reason.
     def self.dumpTrainerCardData!
         data = buildTrainerPool.map do |entry|
             td = entry.trainer_data
@@ -79,7 +83,7 @@ module EloTournament
                 name_for_hashing: td.name_for_hashing,
                 version: td.version,
                 policies: trainer.policies.map(&:to_s),
-                party: trainer.party.map { |p| { species: p.species.to_s, species_display: p.speciesName, level: p.level, nickname: (p.nicknamed? ? p.name : nil), shiny: p.shiny?, held_items: p.items.map(&:to_s) } },
+                party: trainer.party.map { |p| { species: p.species.to_s, species_display: p.speciesName, level: p.level, nickname: (p.nicknamed? ? p.name : nil), shiny: p.shiny?, held_items: p.items.map(&:to_s), tribes: p.tribes.map(&:to_s), moves: p.moves.map { |m| { name: m.name, type: m.type.to_s } } } },
             }
         end
         File.open("Analysis/trainer_card_data.json", "w") { |f| f.write(EloTournament.json_encode(data)) }
