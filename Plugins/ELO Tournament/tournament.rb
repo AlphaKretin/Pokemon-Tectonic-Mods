@@ -327,6 +327,25 @@ module EloTournament
         end
     end
 
+    # Bisection helper for testSinglePairing! (ELO_TEST_T*_PARTY_INDICES):
+    # overrides this *specific* GameData::Trainer record's to_trainer to
+    # trim the resolved party down to just the given 0-based indices.
+    # AIBenchmark.runBattle takes the raw GameData::Trainer and calls
+    # to_trainer internally, so trimming has to happen at that level, not
+    # by pre-converting and passing an NPCTrainer in (it wants the raw
+    # record, see feedback-elo-tournament-test-harness). A singleton method
+    # on just this td instance, not a class-level patch, so it can't affect
+    # any other lookup of the same trainer within the process.
+    def self.trimPartyByIndices!(td, indices_env)
+        return unless indices_env
+        indices = indices_env.split(",").map(&:to_i)
+        td.define_singleton_method(:to_trainer) do
+            trainer = super()
+            trainer.party = trainer.party.values_at(*indices)
+            trainer
+        end
+    end
+
     # Temporary, one-off diagnostic: run exactly one specific pairing by
     # explicit identity (no pool scanning, so no risk of accidentally
     # running more than one battle) and record whatever happens. Identity
@@ -337,6 +356,8 @@ module EloTournament
         heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
         t1 = GameData::Trainer.get(ENV["ELO_TEST_T1_TYPE"].to_sym, ENV["ELO_TEST_T1_NAME"], (ENV["ELO_TEST_T1_VERSION"] || "0").to_i)
         t2 = GameData::Trainer.get(ENV["ELO_TEST_T2_TYPE"].to_sym, ENV["ELO_TEST_T2_NAME"], (ENV["ELO_TEST_T2_VERSION"] || "0").to_i)
+        trimPartyByIndices!(t1, ENV["ELO_TEST_T1_PARTY_INDICES"])
+        trimPartyByIndices!(t2, ENV["ELO_TEST_T2_PARTY_INDICES"])
         seed = ENV["ELO_TEST_SEED"].to_i
 
         if ENV["ELO_TEST_PREBATTLE_ONLY"]
