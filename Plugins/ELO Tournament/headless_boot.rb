@@ -94,6 +94,48 @@ if ENV["ELO_TOURNAMENT"]
         return 0
     end
 
+    # Temporary diagnostic (ELO_PROFILE_TIMING): wraps the four per-round
+    # battle phases plus the two AI sub-steps with wall-clock timing.
+    if ENV["ELO_PROFILE_TIMING"]
+        class PokeBattle_Battle
+            PROFILE_TIMINGS = Hash.new(0.0)
+            PROFILE_CALLS = Hash.new(0)
+            %i[pbCommandPhase pbAttackPhase pbEndOfRoundPhase pbStartOfRoundPhase].each do |phase|
+                alias_method :"#{phase}_preProfile", phase
+                define_method(phase) do |*args, **kwargs|
+                    t0 = Time.now
+                    ret = send(:"#{phase}_preProfile", *args, **kwargs)
+                    PROFILE_TIMINGS[phase] += Time.now - t0
+                    PROFILE_CALLS[phase] += 1
+                    ret
+                end
+            end
+        end
+
+        class PokeBattle_AI
+            %i[pbEnemyShouldWithdraw? pbGetBestTrainerMoveChoices estimateSwitchScoreCeiling].each do |phase|
+                alias_method :"#{phase}_preProfile", phase
+                define_method(phase) do |*args, **kwargs|
+                    t0 = Time.now
+                    ret = send(:"#{phase}_preProfile", *args, **kwargs)
+                    PokeBattle_Battle::PROFILE_TIMINGS[phase] += Time.now - t0
+                    PokeBattle_Battle::PROFILE_CALLS[phase] += 1
+                    ret
+                end
+            end
+        end
+
+        def dump_profile_timing!
+            File.open("Analysis/profile_timing.txt", "a") do |f|
+                f.puts("=== battle ===")
+                PokeBattle_Battle::PROFILE_TIMINGS.each do |phase, total|
+                    calls = PokeBattle_Battle::PROFILE_CALLS[phase]
+                    f.puts("#{phase}: #{total.round(3)}s over #{calls} calls (#{(total / calls * 1000).round(2)}ms/call)")
+                end
+            end
+        end
+    end
+
     def pbCallTitle
         # A "debug" launch recompiles Plugins into Data/PluginScripts.rxdata
         # before Main ever reaches pbCallTitle, so just reaching this point
@@ -116,6 +158,7 @@ if ENV["ELO_TOURNAMENT"]
         setLevelCap(MAX_LEVEL_CAP, false)
         if ENV["ELO_TEST_SINGLE_PAIRING"]
             EloTournament.testSinglePairing!
+            dump_profile_timing! if ENV["ELO_PROFILE_TIMING"]
         elsif ENV["ELO_SAVE_REPLAY"]
             EloTournament.saveReplay!
         elsif ENV["ELO_RUN_BRACKET"]
