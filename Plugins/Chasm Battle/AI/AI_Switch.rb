@@ -284,6 +284,23 @@ class PokeBattle_AI
         urgency = 0
         list = pbGetPartyWithSwapRatings(idxBattler, safeSwitch,urgency)
         list.delete_if { |val| !@battle.pbCanSwitchLax?(idxBattler, val[0]) }
+        # An avatar/boss Pokemon's PRESERVE_LAST_POKEMON score (-50 in
+        # getSwitchRatingForPartyMember) is only a soft nudge -- if every
+        # other living Pokemon scores even worse (bad matchups), the AI can
+        # still pick it early. In doubles that's harmless (the other active
+        # slot keeps the side going), which is why pbCanSwitch? deliberately
+        # leaves a fainted boss/avatar occupying its slot forever once sent
+        # out. Singles has no second slot to fall back on, so once that one
+        # slot is stuck on a fainted avatar, the side can never field anyone
+        # else again -- forbid sending an avatar out early there. Scoped to
+        # boss Pokemon specifically, not PRESERVE_LAST_POKEMON generally,
+        # since that policy has other, non-avatar uses in singles that should
+        # keep their existing soft-preference behavior.
+        if @battle.singleBattle? && list.length > 1
+            party = @battle.pbParty(idxBattler)
+            nonAvatar = list.reject { |val| party[val[0]]&.boss? }
+            list = nonAvatar unless nonAvatar.empty?
+        end
         if list.length != 0
             listSwapOutCandidates(@battle.battlers[idxBattler], list)
             return list[0][0]

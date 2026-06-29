@@ -26,7 +26,14 @@ module EloTournament
     # random move selection), not because dev/joke trainers as a category
     # are out of scope -- most DEVELOPER-type trainers are real curated
     # teams worth ranking and stay in the pool.
-    QUARANTINED_POLICIES = [:ALLOW_RANDOM_MOVES]
+    #
+    # Left empty for now: changing pool composition reshuffles the entire
+    # sampledEdges() pairing list (Fisher-Yates is sensitive to array
+    # length from the first draw), not just Attea's own pairs, which would
+    # orphan ~16k already-completed results on resume instead of cleanly
+    # skipping them. Attea is excluded at analysis time (ratings.py)
+    # instead, until a fresh full resample is worth doing.
+    QUARANTINED_POLICIES = []
 
     # Monument trainers (PBS/trainers_monument.txt) are real content but
     # intentionally out of scope (disjoint rematch/gauntlet roster, per

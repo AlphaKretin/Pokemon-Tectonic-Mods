@@ -54,7 +54,15 @@ class PokeBattle_Battle
     # NOTE: Messages are only shown while in the party screen when choosing a
     #       command for the next round.
     def pbCanSwitch?(idxBattler, idxParty = -1, partyScene = nil)
-        if @battlers[idxBattler].boss?
+        # In doubles, a fainted boss/avatar deliberately keeps consuming its
+        # slot forever (e.g. an avatar spawned into a fresh slot) -- the
+        # other active slot keeps the side going, so this is harmless. In
+        # singles that's the only slot, so once the boss has fainted, leaving
+        # it stuck here forever means the side can never field anyone else
+        # again, even a genuinely living Pokemon -- a softlock, not the
+        # intended "can't retreat a healthy avatar" rule. Only carve out the
+        # fainted case, and only in singles.
+        if @battlers[idxBattler].boss? && !(singleBattle? && @battlers[idxBattler].fainted?)
             partyScene.pbDisplay(_INTL("Avatars can't be switched out!")) if partyScene
             return false
         end
@@ -224,6 +232,13 @@ class PokeBattle_Battle
 
                     # Foe chooses their switch
                     idxPartyNew = pbSwitchInBetween(idxBattler, safeSwitch: true)
+                    # -1 ("no valid replacement") must not reach pbRecallAndReplace:
+                    # party[-1] silently aliases the last party slot instead of
+                    # raising, corrupting that battler's pokemonIndex permanently
+                    # and crashing every subsequent retry (PassingStats' default-
+                    # value guard). Mirrors the same-file triggeredSwitchOut's
+                    # existing `return false if newPkmn < 0` guard.
+                    next if idxPartyNew < 0
 
                     # Empathfinder / Switch Mode check
                     if @internalBattle && trainerBattle? && opposes?(idxBattler)
