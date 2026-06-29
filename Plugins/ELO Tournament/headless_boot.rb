@@ -120,6 +120,8 @@ if ENV["ELO_TOURNAMENT"]
             EloTournament.saveReplay!
         elsif ENV["ELO_RUN_BRACKET"]
             EloTournament.runBracket!
+        elsif ENV["ELO_DUMP_TRAINER_CARD_DATA"]
+            EloTournament.dumpTrainerCardData!
         else
             EloTournament.run!
         end

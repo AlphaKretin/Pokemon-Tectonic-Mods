@@ -52,4 +52,29 @@ module EloTournament
         label += "##{td.version}" if td.version > 0
         label
     end
+
+    # One-off diagnostic dump (ELO_DUMP_TRAINER_CARD_DATA) for the trainer
+    # card generator: every pool trainer's fully-resolved (ExtendsVersion-
+    # merged) policies and party, by way of td.to_trainer -- the same
+    # resolution real battles use -- rather than re-deriving PBS inheritance
+    # rules in Python, which would be easy to get subtly wrong.
+    def self.dumpTrainerCardData!
+        data = buildTrainerPool.map do |entry|
+            td = entry.trainer_data
+            trainer = td.to_trainer
+            {
+                label: trainerLabel(td),
+                trainer_type: td.trainer_type.to_s,
+                trainer_type_label: td.trainer_type_label&.to_s,
+                trainer_type_display: trainer.trainer_type_name,
+                gender: trainer.gender,
+                real_name: td.real_name,
+                name_for_hashing: td.name_for_hashing,
+                version: td.version,
+                policies: trainer.policies.map(&:to_s),
+                party: trainer.party.map { |p| { species: p.species.to_s, species_display: p.speciesName, level: p.level, nickname: (p.nicknamed? ? p.name : nil), shiny: p.shiny?, held_items: p.items.map(&:to_s) } },
+            }
+        end
+        File.open("Analysis/trainer_card_data.json", "w") { |f| f.write(EloTournament.json_encode(data)) }
+    end
 end
