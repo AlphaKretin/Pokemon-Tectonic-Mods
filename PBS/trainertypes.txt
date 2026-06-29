@@ -1006,7 +1006,7 @@ CursedBGM = Battle Gym Leader 2
 #-------------------------------
 [LEADER_Eko]
 Name = Gym Leader
-Gender = Male
+Gender = Unknown
 BaseMoney = 100
 BattleBGM = Battle Gym Leader 1
 CursedBGM = Battle Gym Leader 2
