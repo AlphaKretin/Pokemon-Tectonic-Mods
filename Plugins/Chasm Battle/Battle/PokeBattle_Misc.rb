@@ -303,6 +303,7 @@ class PokeBattle_Battle
 
     def aiLearnsAbility(battler, ability)
         return unless battler.pbOwnedByPlayer?
+        @knownAbilities[battler.pokemon.personalID] ||= []
         return if @knownAbilities[battler.pokemon.personalID].include?(ability)
         @knownAbilities[battler.pokemon.personalID].push(ability)
         echoln("[AI LEARNING] The AI is now aware of #{battler.pbThis(true)}'s ability #{ability}")
@@ -310,6 +311,7 @@ class PokeBattle_Battle
 
     def aiLearnsPokemonAbility(pkmn, ownerIndex, ability)
         return unless ownerIndex == 0
+        @knownAbilities[pkmn.personalID] ||= []
         return if @knownAbilities[pkmn.personalID].include?(ability)
         @knownAbilities[pkmn.personalID].push(ability)
         echoln("[AI LEARNING] The AI is now aware of #{pkmn.name}'s ability #{ability}")
@@ -331,6 +333,7 @@ class PokeBattle_Battle
 
     def aiLearnsItem(battler, item)
         return unless battler.pbOwnedByPlayer?
+        @knownItems[battler.pokemon.personalID] ||= []
         return if @knownItems[battler.pokemon.personalID].include?(item)
         @knownItems[battler.pokemon.personalID].push(item)
         echoln("[AI LEARNING] The AI is now aware of #{battler.pbThis(true)}'s item #{item}")

@@ -354,9 +354,10 @@ module EloTournament
         end
 
         result = begin
+            error_log_before = errorLogSize
             srand(seed)
             r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: ENV["ELO_TEST_FORMAT"] || "single")
-            { ok: true, result: r[:result], rounds: r[:rounds], time_s: r[:time_s] }
+            { ok: true, had_error: errorLogSize > error_log_before, result: r[:result], rounds: r[:rounds], time_s: r[:time_s] }
         rescue => e
             { ok: false, error_class: e.class.name, error_message: e.message, backtrace: e.backtrace&.first(60) }
         end
@@ -393,10 +394,11 @@ module EloTournament
             row = begin
                 t1 = GameData::Trainer.get(t1Type.to_sym, t1Name, t1Version.to_i)
                 t2 = GameData::Trainer.get(t2Type.to_sym, t2Name, t2Version.to_i)
+                error_log_before = errorLogSize
                 srand(seed.to_i)
                 r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: format)
                 { ok: true, t1: t1Label, t2: t2Label, seed: seed.to_i, format: format,
-                  result: r[:result], rounds: r[:rounds], time_s: r[:time_s] }
+                  had_error: errorLogSize > error_log_before, result: r[:result], rounds: r[:rounds], time_s: r[:time_s] }
             rescue => e
                 { ok: false, t1: t1Label, t2: t2Label, seed: seed.to_i, format: format,
                   error_class: e.class.name, error_message: e.message }
