@@ -9,6 +9,7 @@ class PokeBattle_AI
     def initialize(battle)
         @battle = battle
         @precalculatedChoices = {}
+        @scoringInProgress = {}
         @precalculatedDefensiveMatchup = {}
         @typeModCache = {}
         @justswitched = [false,false,false,false]

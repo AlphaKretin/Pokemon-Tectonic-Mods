@@ -258,16 +258,36 @@ class PokeBattle_AI
             return precalcedScore,precalcedKillInfo
         end
 
-        echoln("[MOVE SCORING] Scoring #{user.pbThis(true)}'s #{move.id} against target #{target.pbThis(true)}:")
-        
-        move.calculateUsageOverrides(user, [target])
-
-        if aiPredictsFailure?(move, user, target, false)
-            @precalculatedChoices[scoringKey] = 0
-            return 0,nil
+        # Scoring a move's effect can recurse back into scoring this exact
+        # same move/user/target combo before this call ever finishes -- e.g.
+        # a stat-up effect (Dream Weaver triggering off a sleep move) scores
+        # its own safety via the target's defensive matchup, which assesses
+        # the *user's* best move against the target, including this same
+        # move. @precalculatedChoices can't break that cycle since it's only
+        # populated once a computation completes, and this one never does on
+        # its own. Only reachable in practice when Transform/Imposter puts
+        # the same ability+moveset on both sides of a matchup (e.g. Ditto
+        # copying Musharna), which doesn't happen with any real trainer
+        # pairing. Treat re-entry as "no incremental benefit from this
+        # scenario" -- same convention as the predicted-failure short-circuit
+        # below -- rather than recursing again into a stack overflow that
+        # crashes the process below Ruby's own SystemStackError handling.
+        if @scoringInProgress[scoringKey]
+            return 0, nil
         end
-        
-        switchPredicted = @battle.aiPredictsSwitch?(user,target.index,true)
+        @scoringInProgress[scoringKey] = true
+
+        begin
+            echoln("[MOVE SCORING] Scoring #{user.pbThis(true)}'s #{move.id} against target #{target.pbThis(true)}:")
+
+            move.calculateUsageOverrides(user, [target])
+
+            if aiPredictsFailure?(move, user, target, false)
+                @precalculatedChoices[scoringKey] = 0
+                return 0,nil
+            end
+
+            switchPredicted = @battle.aiPredictsSwitch?(user,target.index,true)
 
         # DAMAGE SCORE AND HIT TRIGGERS SCORE
         damageDealt = 0
@@ -452,6 +472,9 @@ class PokeBattle_AI
         
         @precalculatedChoices[scoringKey] = [score,killInfo]
         return score,killInfo,isSlowerDead3,isFasterDead3
+        ensure
+            @scoringInProgress.delete(scoringKey)
+        end
     end
 
     def getMultiplicativeAbilityScore(score, move, user, target)
