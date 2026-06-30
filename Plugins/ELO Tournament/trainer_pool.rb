@@ -83,7 +83,22 @@ module EloTournament
                 name_for_hashing: td.name_for_hashing,
                 version: td.version,
                 policies: trainer.policies.map(&:to_s),
-                party: trainer.party.map { |p| { species: p.species.to_s, species_display: p.speciesName, level: p.level, nickname: (p.nicknamed? ? p.name : nil), shiny: p.shiny?, held_items: p.items.map(&:to_s), tribes: p.tribes.map(&:to_s), moves: p.moves.map { |m| { name: m.name, type: m.type.to_s } } } },
+                party: trainer.party.map do |p|
+                    extra_move_ids = p.extraMoves.reject { |id| p.moves.any? { |m| m.id == id } }
+                    {
+                        species: p.species.to_s,
+                        species_display: p.speciesName,
+                        level: p.level,
+                        nickname: (p.nicknamed? ? p.name : nil),
+                        shiny: p.shiny?,
+                        held_items: p.items.map(&:to_s),
+                        tribes: p.tribes.map(&:to_s),
+                        # p.types includes base type(s) + extraTypes already merged and deduped
+                        types: p.types.map(&:to_s),
+                        moves: p.moves.map { |m| { name: m.name, type: m.type.to_s } } +
+                               extra_move_ids.map { |id| gm = GameData::Move.get(id); { name: gm.name, type: gm.type.to_s } },
+                    }
+                end,
             }
         end
         File.open("Analysis/trainer_card_data.json", "w") { |f| f.write(EloTournament.json_encode(data)) }
