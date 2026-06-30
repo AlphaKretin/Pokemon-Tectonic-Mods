@@ -223,7 +223,7 @@ class PokeBattle_Move
         if user.burned? && physicalMove? && damageReducedByBurn? && !user.shouldAbilityApply?(:BURNHEAL,checkingForAI)
             damageReduction = (1.0/3.0)
             damageReduction = (1.0/5.0) if user.boss? && AVATAR_DILUTED_STATUS_CONDITIONS
-            damageReduction *= 2 if user.pbOwnedByPlayer? && @battle.curseActive?(:CURSE_STATUS_DOUBLED)
+            damageReduction *= 2 if user.curseVictim?(:CURSE_STATUS_DOUBLED)
             damageReduction *= 1.5 if toil
             damageReduction *= 2 if user.hasActiveAbility?(:CLEANFREAK)
             damageReduction = 1 if damageReduction > 1
@@ -233,7 +233,7 @@ class PokeBattle_Move
         if user.frostbitten? && specialMove? && damageReducedByBurn? && !user.shouldAbilityApply?(:FROSTHEAL,checkingForAI)
             damageReduction = (1.0/3.0)
             damageReduction = (1.0/5.0) if user.boss? && AVATAR_DILUTED_STATUS_CONDITIONS
-            damageReduction *= 2 if user.pbOwnedByPlayer? && @battle.curseActive?(:CURSE_STATUS_DOUBLED)
+            damageReduction *= 2 if user.curseVictim?(:CURSE_STATUS_DOUBLED)
             damageReduction *= 1.5 if toil
             damageReduction *= 2 if user.hasActiveAbility?(:CLEANFREAK)
             damageReduction = 1 if damageReduction > 1
@@ -243,7 +243,7 @@ class PokeBattle_Move
         if user.numbed?
             damageReduction = (1.0/4.0)
             damageReduction = (3.0/20.0) if user.boss? && AVATAR_DILUTED_STATUS_CONDITIONS
-            damageReduction *= 2 if user.pbOwnedByPlayer? && @battle.curseActive?(:CURSE_STATUS_DOUBLED)
+            damageReduction *= 2 if user.curseVictim?(:CURSE_STATUS_DOUBLED)
             damageReduction *= 1.5 if toil
             damageReduction *= 2 if user.hasActiveAbility?(:CLEANFREAK)
             damageReduction = 1 if damageReduction > 1
@@ -253,7 +253,7 @@ class PokeBattle_Move
         if target.dizzy? && !target.shouldAbilityApply?([:MARVELSKIN,:MARVELSCALE],checkingForAI)
             damageIncrease = (1.0/4.0)
             damageIncrease = (3.0/20.0) if target.boss? && AVATAR_DILUTED_STATUS_CONDITIONS
-            damageIncrease *= 2 if target.pbOwnedByPlayer? && @battle.curseActive?(:CURSE_STATUS_DOUBLED)
+            damageIncrease *= 2 if target.curseVictim?(:CURSE_STATUS_DOUBLED)
             damageIncrease *= 2 if target.hasActiveAbility?(:CLEANFREAK)
             multipliers[:final_damage_multiplier] *= (1.0 + damageIncrease)
         end
@@ -261,7 +261,7 @@ class PokeBattle_Move
         if target.waterlogged? && !target.shouldAbilityApply?([:MARVELSKIN,:MARVELSCALE],checkingForAI)
             damageIncrease = (1.0/4.0)
             damageIncrease = (3.0/20.0) if target.boss? && AVATAR_DILUTED_STATUS_CONDITIONS
-            damageIncrease *= 2 if target.pbOwnedByPlayer? && @battle.curseActive?(:CURSE_STATUS_DOUBLED)
+            damageIncrease *= 2 if target.curseVictim?(:CURSE_STATUS_DOUBLED)
             damageIncrease *= 2 if target.hasActiveAbility?(:CLEANFREAK)
             multipliers[:final_damage_multiplier] *= (1.0 + damageIncrease)
         end
@@ -366,7 +366,7 @@ class PokeBattle_Move
                 stabActive = true if user.hasActiveAbilityAI?(:SHAKYCODE) && @battle.eclipsed?
             end
         end
-        stabActive = false if user.pbOwnedByPlayer? && @battle.curses.include?(:DULLED)
+        stabActive = false if user.curseVictim?(:CURSE_DULLED)
         stabActive = false if @battle.pbCheckGlobalAbility(:SIGNALJAM)
 
         # STAB

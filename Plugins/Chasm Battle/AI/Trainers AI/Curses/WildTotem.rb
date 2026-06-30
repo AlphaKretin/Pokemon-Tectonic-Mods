@@ -1,5 +1,5 @@
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_WILD_TOTEM,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, _side, battle, curses_array|
         battle.amuletActivates(
             _INTL("A Bestial Bellow Echoes Evermore, a Comprehensive Command: Bow!"),
             _INTL("Primal Forest is continually active on the opposing side."),
@@ -10,8 +10,8 @@ PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_WILD_TOTEM,
 )
 
 PokeBattle_Battle::BattlerEnterCurseEffect.add(:CURSE_WILD_TOTEM,
-    proc { |_curse_policy, battler, _battle|
-        next unless battler.opposes?
+    proc { |curse_policy, battler, _battle|
+        next unless battler.curseHolder?(curse_policy)
         battler.pbOwnSide.applyEffect(:PrimalForest, 1000)
     }
 )

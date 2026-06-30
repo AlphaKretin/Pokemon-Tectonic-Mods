@@ -1,5 +1,5 @@
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_FIGHT_EXTENDED,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, _side, battle, curses_array|
         battle.amuletActivates(
             _INTL("The Visitation of the Illusive Inevitable: Landfall"),
             _INTL("Yezera won't leave the battle early. This is a true fight!")

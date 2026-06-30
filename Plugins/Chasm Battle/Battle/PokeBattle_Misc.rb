@@ -58,7 +58,7 @@ class PokeBattle_Battle
     end
 
     def curseActive?(curseID)
-        return @curses.include?(curseID)
+        return @curses.any? { |policy, _side| policy == curseID }
     end
 
     def stolenItemTurnsToDust?(item = nil)

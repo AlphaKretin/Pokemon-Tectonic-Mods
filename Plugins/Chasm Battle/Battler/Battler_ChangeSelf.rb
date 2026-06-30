@@ -357,7 +357,7 @@ class PokeBattle_Battler
             @battle.scene.pbFaintBattler(self) unless @battle.autoTesting
 
             # Trigger battler faint curses
-            @battle.curses.each do |curse_policy|
+            @battle.curses.each do |curse_policy, _side|
                 @battle.triggerBattlerFaintedCurseEffect(curse_policy, self, @battle)
             end
 
@@ -736,7 +736,7 @@ class PokeBattle_Battler
         else
             hasLocket = hasActiveItem?(:FRAGILELOCKET)
         end
-        if hasLocket || (@battle.curseActive?(:CURSE_DOUBLE_ABILITIES) && index.odd?)
+        if hasLocket || curseHolder?(:CURSE_DOUBLE_ABILITIES)
             eachLegalAbility do |legalAbility|
                 next if @ability_ids.include?(legalAbility)
                 next if GameData::Ability.get(legalAbility).is_immutable_ability?

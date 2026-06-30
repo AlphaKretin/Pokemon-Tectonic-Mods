@@ -109,7 +109,7 @@ class PokeBattle_Move
         ret = Effectiveness.modify_boss_effectiveness(ret, user, target)
 
         # Type effectiveness changing curses
-        @battle.curses.each do |curse|
+        @battle.curses.each do |curse, _side|
             ret = @battle.triggerEffectivenessChangeCurseEffect(curse, moveType, user, target, ret)
         end
 
@@ -403,7 +403,7 @@ showMessages)
         user.eachAbilityShouldApply(aiCheck) do |ability|
             return 100 if BattleHandlers.triggerCertainAddedEffectUserAbility(ability, @battle, user, target, self)
         end
-        return 100 if !user.pbOwnedByPlayer? && @battle.curseActive?(:CURSE_PERFECT_LUCK)
+        return 100 if user.curseHolder?(:CURSE_PERFECT_LUCK)
         ret = effectChance > 0 ? effectChance : @effectChance
         return 100 if ret >= 100 || debugControl
         ret += 30 if user.hasTribeBonus?(:FORTUNE)

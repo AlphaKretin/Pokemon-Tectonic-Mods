@@ -8,13 +8,21 @@ class PokeBattle_Battle
     BeginningOfTurnCurseEffect	= HandlerHash2.new
     EndOfTurnCurseEffect	= HandlerHash2.new
 
-    def triggerBattleStartApplyCurse(curse_policy, battle, curses_array)
-        ret = BattleStartApplyCurse.trigger(curse_policy, battle, curses_array)
+    # side = which battle side (0 or 1) holds this curse. Threaded through
+    # explicitly here because these four triggers act on a side/party
+    # directly with no battler argument to disambiguate against -- unlike
+    # the battler-context triggers below, there'd be nothing to resolve
+    # "which side" against if two different trainers in the battle happen
+    # to hold the same curse symbol on opposite sides (this does happen at
+    # full-pool scale, e.g. CURSE_PERFECT_LUCK is carried by 7 different
+    # trainers).
+    def triggerBattleStartApplyCurse(curse_policy, side, battle, curses_array)
+        ret = BattleStartApplyCurse.trigger(curse_policy, side, battle, curses_array)
         return ret || curses_array
     end
 
-    def triggerBattleEndCurse(curse_policy, battle)
-        BattleEndCurse.trigger(curse_policy, battle)
+    def triggerBattleEndCurse(curse_policy, side, battle)
+        BattleEndCurse.trigger(curse_policy, side, battle)
     end
 
     def triggerBattlerEnterCurseEffect(curse_policy, battler, battle)
@@ -32,12 +40,12 @@ class PokeBattle_Battle
         return ret || effectiveness
     end
 
-    def triggerBeginningOfTurnCurseEffect(curse_policy, battle)
-        BeginningOfTurnCurseEffect.trigger(curse_policy, battle)
+    def triggerBeginningOfTurnCurseEffect(curse_policy, side, battle)
+        BeginningOfTurnCurseEffect.trigger(curse_policy, side, battle)
     end
 
-    def triggerEndOfTurnCurseEffect(curse_policy, battle)
-        EndOfTurnCurseEffect.trigger(curse_policy, battle)
+    def triggerEndOfTurnCurseEffect(curse_policy, side, battle)
+        EndOfTurnCurseEffect.trigger(curse_policy, side, battle)
     end
 
     def triggerMoveUsedCurseEffect(curse_policy, user, target, move)
@@ -128,4 +136,22 @@ def amuletMessageDuration
     dur = 70
     dur -= 8 * $Options.textspeed
     return dur
+end
+
+class PokeBattle_Battler
+    # @curses holds [policy, side] tuples (side = 0 or 1, whichever battle
+    # side holds that curse) rather than bare symbols, specifically so this
+    # stays correct when two different trainers in the same battle hold an
+    # identical curse symbol on opposite sides -- confirmed to actually
+    # happen at full-pool scale (e.g. CURSE_PERFECT_LUCK is carried by 7
+    # different trainers). Scanning per-battler like this resolves each
+    # side independently instead of relying on a single global lookup that
+    # a duplicate symbol could clobber.
+    def curseHolder?(curseID)
+        @battle.curses.any? { |policy, side| policy == curseID && side == idxOwnSide }
+    end
+
+    def curseVictim?(curseID)
+        @battle.curses.any? { |policy, side| policy == curseID && side == idxOpposingSide }
+    end
 end

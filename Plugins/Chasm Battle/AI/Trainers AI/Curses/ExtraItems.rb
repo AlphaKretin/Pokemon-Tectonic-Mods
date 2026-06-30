@@ -1,5 +1,5 @@
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_EXTRA_ITEMS,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, _side, battle, curses_array|
         battle.amuletActivates(
             _INTL("forge a blade\nfrom gold/\npluck out its\nsilhouette and/\nwield the\nshadow too!"),
             _INTL("Enemy Pokemon all have an extra item.")

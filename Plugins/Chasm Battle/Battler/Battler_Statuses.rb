@@ -124,7 +124,7 @@ class PokeBattle_Battler
     def pbCanInflictStatus?(newStatus, user, showMessages, move = nil, ignoreStatus = false)
         return false if fainted?
         selfInflicted = (user && user.index == @index)
-        statusDoublingCurse = pbOwnedByPlayer? && @battle.curseActive?(:CURSE_STATUS_DOUBLED)
+        statusDoublingCurse = curseVictim?(:CURSE_STATUS_DOUBLED)
         # Already have that status problem
         if getStatuses.include?(newStatus) && !ignoreStatus
             if showMessages

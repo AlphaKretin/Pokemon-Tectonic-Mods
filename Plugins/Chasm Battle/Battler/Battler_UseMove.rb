@@ -603,7 +603,7 @@ class PokeBattle_Battler
             end
 
             # Curses about move usage
-            @battle.curses.each do |curse_policy|
+            @battle.curses.each do |curse_policy, _side|
                 @battle.triggerMoveUsedCurseEffect(curse_policy, self, choice[3], move)
             end
 

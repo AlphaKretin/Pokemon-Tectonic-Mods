@@ -1,5 +1,5 @@
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_TORMENTED,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, _side, battle, curses_array|
         battle.amuletActivates(
             _INTL("Lucid? Lose it. Lunacy looms lucent. Let loose."),
             _INTL("Your Pokemon are Tormented on entry.")
@@ -10,8 +10,8 @@ PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_TORMENTED,
 )
 
 PokeBattle_Battle::BattlerEnterCurseEffect.add(:CURSE_TORMENTED,
-    proc { |_curse_policy, battler, _battle|
-        next if battler.opposes?
+    proc { |curse_policy, battler, _battle|
+        next unless battler.curseVictim?(curse_policy)
         battler.applyEffect(:Torment)
     }
 )

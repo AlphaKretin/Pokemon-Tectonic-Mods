@@ -3,7 +3,7 @@ class Pokemon
 end
 
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_DELEVELED,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, side, battle, curses_array|
         battle.amuletActivates(
             _INTL("Forevers Traversed yet Ever No Better"),
             _INTL("Your Pokemon lose 10 levels for this fight. EXP goes to the Dispenser.")
@@ -11,13 +11,14 @@ PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_DELEVELED,
 
         battle.expCapped = true
 
-        $Trainer.party.each do |pokemon|
+        victimSide = side ^ 1
+        battle.pbParty(victimSide).each do |pokemon|
             pokemon.pre_curse_exp = pokemon.exp
             pokemon.level = [1, pokemon.level - 10].max
             pokemon.calc_stats
         end
 
-        battle.eachSameSideBattler(0) do |battler|
+        battle.eachSameSideBattler(victimSide) do |battler|
             battler.pbUpdate
         end
 
@@ -29,8 +30,8 @@ PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_DELEVELED,
 )
 
 PokeBattle_Battle::BattleEndCurse.add(:CURSE_DELEVELED,
-    proc { |_curse_policy, _battle|
-        $Trainer.party.each do |pokemon|
+    proc { |_curse_policy, side, battle|
+        battle.pbParty(side ^ 1).each do |pokemon|
             pokemon.exp = pokemon.pre_curse_exp
             pokemon.calc_stats
         end

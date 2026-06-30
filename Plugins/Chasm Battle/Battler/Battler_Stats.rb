@@ -318,7 +318,7 @@ class PokeBattle_Battler
         numbRelevant = false if afterSwitching && hasActiveAbilityAI?(:NATURALCURE)
         if numbRelevant
             speedMult /= 2.0
-            speedMult /= 2.0 if pbOwnedByPlayer? && @battle.curseActive?(:CURSE_STATUS_DOUBLED)
+            speedMult /= 2.0 if curseVictim?(:CURSE_STATUS_DOUBLED)
             speedMult /= 2.0 if shouldAbilityApply?(:CLEANFREAK, aiCheck)
         end
 
@@ -327,7 +327,7 @@ class PokeBattle_Battler
         waterlogRelevant = false if afterSwitching && hasActiveAbilityAI?(:NATURALCURE)
         if waterlogRelevant
             speedMult /= 2.0
-            speedMult /= 2.0 if pbOwnedByPlayer? && @battle.curseActive?(:CURSE_STATUS_DOUBLED)
+            speedMult /= 2.0 if curseVictim?(:CURSE_STATUS_DOUBLED)
             speedMult /= 2.0 if shouldAbilityApply?(:CLEANFREAK, aiCheck)
         end
 

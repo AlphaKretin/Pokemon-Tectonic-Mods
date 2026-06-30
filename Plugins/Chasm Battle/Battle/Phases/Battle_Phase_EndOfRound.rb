@@ -47,8 +47,8 @@ class PokeBattle_Battle
         end
 
         # Curses effects here
-        @curses.each do |curse_policy|
-            triggerEndOfTurnCurseEffect(curse_policy, self)
+        @curses.each do |curse_policy, side|
+            triggerEndOfTurnCurseEffect(curse_policy, side, self)
         end
 
         # Reset the echoed voice counter unless anyone used echoed voice this turn
@@ -119,7 +119,7 @@ class PokeBattle_Battle
             else
                 fraction = 1.0 / 8.0
             end
-            fraction *= 2 if battler.pbOwnedByPlayer? && curseActive?(:CURSE_STATUS_DOUBLED)
+            fraction *= 2 if battler.curseVictim?(:CURSE_STATUS_DOUBLED)
             fraction *= 2 if battler.hasActiveAbility?(:CLEANFREAK)
             case status
             when :POISON

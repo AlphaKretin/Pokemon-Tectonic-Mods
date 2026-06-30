@@ -1,5 +1,5 @@
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_DOUBLE_ABILITIES,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, _side, battle, curses_array|
         battle.amuletActivates(
             _INTL("Ought Not the Foxtrot to Double Aught of What We Sought?"),
             _INTL("Enemy Pokemon have all of their legal abilities!")

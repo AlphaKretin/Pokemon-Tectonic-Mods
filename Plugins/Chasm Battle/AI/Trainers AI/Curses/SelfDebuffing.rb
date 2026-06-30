@@ -1,5 +1,5 @@
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_SELF_DEBUFFING,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, _side, battle, curses_array|
         battle.amuletActivates(
             _INTL("Every Beat Betrays the Beast's Burden"),
             _INTL("After your Pokemon attack, the attacking stat that was used is lowered by 4 steps.")
@@ -10,8 +10,8 @@ PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_SELF_DEBUFFING,
 )
 
 PokeBattle_Battle::MoveUsedCurseEffect.add(:CURSE_SELF_DEBUFFING,
-    proc { |_curse_policy, user, _target, move|
-        next if user.opposes?
+    proc { |curse_policy, user, _target, move|
+        next unless user.curseVictim?(curse_policy)
         next unless move.damagingMove?
 
         relevant_stat = move.specialMove? ? :SPECIAL_ATTACK : :ATTACK

@@ -482,7 +482,7 @@ class PokeBattle_Battle
         return false if battler.fainted?
 
         # Trigger enter the field curses
-        curses.each do |curse|
+        curses.each do |curse, _side|
             triggerBattlerEnterCurseEffect(curse, battler, self)
         end
 

@@ -1,5 +1,5 @@
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_VENGEANT,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, _side, battle, curses_array|
         battle.amuletActivates(
             _INTL("O Agonal Ecstasies, Spare Us Not Our Agonies"),
             _INTL("When enemy Pokemon faint, they deal a quarter of their HP as damage to their last attacker.")
@@ -10,8 +10,8 @@ PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_VENGEANT,
 )
 
 PokeBattle_Battle::BattlerFaintedCurseEffect.add(:CURSE_VENGEANT,
-    proc { |_curse_policy, battler, battle|
-        next unless battler.opposes?
+    proc { |curse_policy, battler, battle|
+        next unless battler.curseHolder?(curse_policy)
         next if battler.lastFoeAttacker.length == 0
         battle.pbDisplay(_INTL("{1} takes its vengeance!", battler.pbThis))
         hpLoss = battler.totalhp / 4

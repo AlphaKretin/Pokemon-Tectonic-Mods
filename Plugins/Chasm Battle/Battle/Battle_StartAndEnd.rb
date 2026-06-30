@@ -321,8 +321,8 @@ class PokeBattle_Battle
         end
 
         # End the effect of all curses
-        curses.each do |curse_policy|
-            triggerBattleEndCurse(curse_policy, self)
+        curses.each do |curse_policy, side|
+            triggerBattleEndCurse(curse_policy, side, self)
         end
         unless @autoTesting
             # Record if the fight was perfected
@@ -384,13 +384,18 @@ class PokeBattle_Battle
                 break
             end
         end
-        # Curses apply if at all
-        if @opponent
-            @statItemsAreMetagameRevealed = false
-            @opponent.each do |opponent|
-                opponent.policies.each do |policy|
-                    cursesToAdd = triggerBattleStartApplyCurse(policy, self, [])
-                    curses.concat(cursesToAdd)
+        # Curses apply if at all. Walk both sides (not just @opponent) so a
+        # curse policy works regardless of which battle slot its trainer
+        # ends up in -- e.g. in AI-vs-AI tournament battles, either trainer
+        # could be @player or @opponent. Real human-vs-boss play is
+        # unaffected since @player never carries CURSE_* policies there.
+        @statItemsAreMetagameRevealed = false
+        [[@player, 0], [@opponent, 1]].each do |trainers, side|
+            next unless trainers
+            trainers.each do |trainer|
+                trainer.policies.each do |policy|
+                    cursesToAdd = triggerBattleStartApplyCurse(policy, side, self, [])
+                    cursesToAdd.each { |p| curses.push([p, side]) }
 
                     @statItemsAreMetagameRevealed = true if policy == :METAGAMES_STAT_ITEMS
                 end
@@ -570,8 +575,8 @@ class PokeBattle_Battle
         end
 
         # Curses effects here
-        @curses.each do |curse_policy|
-            triggerBeginningOfTurnCurseEffect(curse_policy, self)
+        @curses.each do |curse_policy, side|
+            triggerBeginningOfTurnCurseEffect(curse_policy, side, self)
         end
 
         pbCalculatePriority           # recalculate speeds

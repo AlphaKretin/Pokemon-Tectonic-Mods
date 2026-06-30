@@ -122,30 +122,14 @@ module EloTournament
         edges.flat_map { |e1, e2| pairsForEdge(e1, e2) }
     end
 
-    # Curses (CURSE_* policies) only ever apply to whichever trainer is
-    # passed as the battle's "opponent" -- see Battle_StartAndEnd.rb's
-    # @opponent.each-based triggerBattleStartApplyCurse loop -- so direction
-    # matters for any pair involving a cursed trainer:
-    #  - cursed vs uncursed: only the direction with the cursed trainer as
-    #    opponent actually exercises its curse, so that's the only
-    #    direction worth running.
-    #  - cursed vs cursed: each direction exercises a different trainer's
-    #    curse (never both at once, since only one side is ever "opponent"
-    #    per battle), so both directions are still needed for now to get
-    #    coverage of both curses. (The ideal fix -- applying both sides'
-    #    curses regardless of slot -- is a real engine change, deferred.)
-    #  - uncursed vs uncursed: no curse-driven asymmetry, direction doesn't
-    #    matter, so just pick one.
+    # Curses (CURSE_* policies) now apply to whichever side actually holds
+    # the policy, not just whichever trainer is passed as the battle's
+    # "opponent" slot (see Battle_StartAndEnd.rb's curse-application loop,
+    # which walks both @player and @opponent) -- so direction no longer
+    # matters for any pairing, cursed or not: one battle now exercises
+    # every curse present regardless of which trainer is e1 vs e2.
     def self.pairsForEdge(e1, e2)
-        if e1.curse && e2.curse
-            [[e1, e2], [e2, e1]]
-        elsif e1.curse
-            [[e2, e1]]   # e1 (cursed) as opponent
-        elsif e2.curse
-            [[e1, e2]]   # e2 (cursed) as opponent
-        else
-            [[e1, e2]]   # direction doesn't matter
-        end
+        [[e1, e2]]
     end
 
     def self.allEdges(eligible)

@@ -1,5 +1,5 @@
 PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_FOG_TOTEM,
-    proc { |curse_policy, battle, curses_array|
+    proc { |curse_policy, _side, battle, curses_array|
         battle.amuletActivates(
             _INTL("Occlusion from Diffusion, Illusory Allusion. Conclusion: Elusion."),
             _INTL("Misdirecting Fog is continually active on the opposing side."),
@@ -10,8 +10,8 @@ PokeBattle_Battle::BattleStartApplyCurse.add(:CURSE_FOG_TOTEM,
 )
 
 PokeBattle_Battle::BattlerEnterCurseEffect.add(:CURSE_FOG_TOTEM,
-    proc { |_curse_policy, battler, _battle|
-        next unless battler.opposes?
+    proc { |curse_policy, battler, _battle|
+        next unless battler.curseHolder?(curse_policy)
         battler.pbOwnSide.applyEffect(:MisdirectingFog, 1000)
     }
 )
