@@ -95,6 +95,13 @@ module EloTournament
                         tribes: p.tribes.map(&:to_s),
                         # p.types includes base type(s) + extraTypes already merged and deduped
                         types: p.types.map(&:to_s),
+                        totalhp: p.totalhp,
+                        attack: p.attack,
+                        defense: p.defense,
+                        spatk: p.spatk,
+                        spdef: p.spdef,
+                        speed: p.speed,
+                        stat_total: p.totalhp + p.attack + p.defense + p.spatk + p.spdef + p.speed,
                         moves: p.moves.map { |m| { name: m.name, type: m.type.to_s } } +
                                extra_move_ids.map { |id| gm = GameData::Move.get(id); { name: gm.name, type: gm.type.to_s } },
                     }
