@@ -168,6 +168,8 @@ if ENV["ELO_TOURNAMENT"]
             EloTournament.runBracket!
         elsif ENV["ELO_DUMP_TRAINER_CARD_DATA"]
             EloTournament.dumpTrainerCardData!
+        elsif ENV["ELO_DUMP_CURSE_STRIP_DIFF"]
+            EloTournament.dumpCurseStripDiff!
         else
             EloTournament.run!
         end

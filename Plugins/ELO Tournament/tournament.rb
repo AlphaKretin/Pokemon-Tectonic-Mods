@@ -36,8 +36,16 @@ module EloTournament
     # Maps our FORMAT token to the string PokeBattle_Battle#setBattleMode
     # expects. Anything not recognized there (including "singles") falls
     # through to its own default of 1v1, which is what we want anyway.
-    BATTLE_MODE = (FORMAT == :doubles) ? "double" : "single"
-    MIN_PARTY_SIZE = (FORMAT == :doubles) ? 2 : 1
+    # Substring match (not exact :doubles) so any doubles-flavored format
+    # (e.g. :doubles_uncursed) gets 2v2 without needing its own branch.
+    BATTLE_MODE = FORMAT.to_s.include?("double") ? "double" : "single"
+    MIN_PARTY_SIZE = FORMAT.to_s.include?("double") ? 2 : 1
+
+    # The curse-stripped tournament format: every cursed trainer (except
+    # those excluded by curse_stripping.rb's classifyCursedTrainer -- see
+    # uncursedEdges below) battles with curse effects removed, but genuine
+    # non-curse team differences from their ExtendsVersion base kept.
+    UNCURSED_RUN = FORMAT.to_s.include?("uncursed")
 
     # Sharding splits the full pairing list across multiple concurrent
     # Game.exe processes (one per shard), each with its own RESULTS_PATH/
@@ -118,8 +126,64 @@ module EloTournament
 
     def self.buildPairs(pool)
         eligible = pool.select { |e| e.party_size >= MIN_PARTY_SIZE }
-        edges = SAMPLE_GAMES_PER_TRAINER ? sampledEdges(eligible, SAMPLE_GAMES_PER_TRAINER, SAMPLE_SEED) : allEdges(eligible)
+        edges = if UNCURSED_RUN
+            uncursedEdges(eligible)
+        elsif SAMPLE_GAMES_PER_TRAINER
+            sampledEdges(eligible, SAMPLE_GAMES_PER_TRAINER, SAMPLE_SEED)
+        else
+            allEdges(eligible)
+        end
         edges.flat_map { |e1, e2| pairsForEdge(e1, e2) }
+    end
+
+    # Pairing for the curse-stripped format. Classifies every cursed pool
+    # entry (curse_stripping.rb's classifyCursedTrainer):
+    # - identical_to_base: excluded from the pool entirely -- not a
+    #   combatant, not an opponent. Their stripped team duplicates an
+    #   already-complete pool member (their base), so including them would
+    #   just double-count that opponent for everyone else.
+    # - no_change_from_original: stays in the pool as a valid opponent (curse
+    #   stripping is a no-op for them, so their existing curse-flagged
+    #   battles are already correct), but doesn't by itself trigger a new
+    #   pairing -- a pairing is only fresh if the OTHER side's team actually
+    #   changed too.
+    # - everything else: needs fresh battles against the whole (excluded-
+    #   trimmed) pool, since their stripped team genuinely differs.
+    # A pairing is included here only if at least one side is in that last
+    # "needs fresh battles" group -- pairs where neither side's team changed
+    # are left out entirely; the existing result row already covers them
+    # (see analysis-side composite-format assembly).
+    def self.uncursedEdges(eligible)
+        classifications = {}
+        eligible.each do |e|
+            next unless e.curse
+            classifications[e] = classifyCursedTrainer(e.trainer_data)
+        end
+
+        pool = eligible.reject { |e| classifications[e] && classifications[e][:identical_to_base] }
+        needsFresh = {}
+        pool.each do |e|
+            c = classifications[e]
+            needsFresh[e] = true if c && !c[:identical_to_base] && !c[:no_change_from_original]
+        end
+
+        # Stripping is applied once per unique trainer here (not per-pair --
+        # the same GameData::Trainer instance is shared across every pairing
+        # it appears in, so redefining its singleton to_trainer repeatedly
+        # would just be redundant work). Safe to apply uniformly to every
+        # non-excluded cursed entry, including no_change_from_original ones,
+        # since stripping is a confirmed no-op for those.
+        pool.each { |e| applyCurseStripping!(e.trainer_data) if e.curse }
+
+        edges = []
+        pool.each_with_index do |e1, i|
+            pool.each_with_index do |e2, j|
+                next if j <= i
+                next unless needsFresh[e1] || needsFresh[e2]
+                edges << [e1, e2]
+            end
+        end
+        edges
     end
 
     # Curses (CURSE_* policies) now apply to whichever side actually holds
