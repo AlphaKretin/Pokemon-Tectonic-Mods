@@ -33,6 +33,11 @@ module EloTournament
     # from tournament.rb's FORMAT/BATTLE_MODE since a bracket run never
     # touches the round-robin pairing logic those drive.
     BRACKET_FORMAT       = ENV["ELO_BRACKET_FORMAT"] || "single"
+    # ELO_FORMAT carries the full format string (e.g. "singles_uncursed") --
+    # when it names the curse-stripped format, entrants must get the same
+    # applyCurseStripping! treatment tournament.rb's pool gets, or a cursed
+    # trainer who made the top 16 would fight the bracket with curses intact.
+    UNCURSED_BRACKET     = (ENV["ELO_FORMAT"] || "").include?("uncursed")
 
     # Standard 16-slot single-elimination seeding order (NCAA-style: 1v16,
     # 8v9, 5v12, 4v13, 3v14, 6v11, 7v10, 2v15) -- keeps the top seeds apart
@@ -188,7 +193,12 @@ module EloTournament
         else
             name, version = rest, 0
         end
-        GameData::Trainer.get(type_str.to_sym, name, version)
+        td = GameData::Trainer.get(type_str.to_sym, name, version)
+        # applyCurseStripMutations! no-ops for a trainer with no CURSE_*
+        # policies, so it's safe to apply unconditionally rather than
+        # re-deriving each entrant's curse status here.
+        applyCurseStripping!(td) if UNCURSED_BRACKET
+        td
     end
 
     # seed<TAB>trainer_label<TAB>rating(ignored), one line per entrant, blank
