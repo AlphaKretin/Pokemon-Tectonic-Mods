@@ -49,9 +49,23 @@ module EloTournament
         ensureOverworldState!
         applyWatchDisplayOverrides!
 
+        # A move/effect-level error is caught and logged by the engine's own
+        # logonerr/pbCriticalCode recovery (Battle_StartAndEnd.rb) and the
+        # battle then just continues/ends normally -- the same failure mode
+        # tournament.rb's errorLogSize diffing already exists to catch for
+        # tournament stats. Reuse it here so a swallowed crash still shows up
+        # as more than an ordinary win/loss/draw.
+        error_log_before = errorLogSize
         result = begin
             decision = playRecordedBattle(ENV["ELO_WATCH_REPLAY_NAME"])
-            { ok: true, result: decision }
+            error_log_entry = nil
+            if errorLogSize > error_log_before && File.exist?(errorLogPath)
+                File.open(errorLogPath, "rb") do |f|
+                    f.seek(error_log_before)
+                    error_log_entry = f.read
+                end
+            end
+            { ok: true, result: decision, had_error: !error_log_entry.nil?, error_log_entry: error_log_entry }
         rescue => e
             { ok: false, error_class: e.class.name, error_message: e.message, backtrace: e.backtrace&.first(20) }
         end
