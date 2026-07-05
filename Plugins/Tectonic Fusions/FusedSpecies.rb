@@ -197,10 +197,13 @@ module GameData
             @catch_rate  = [@primary_species.catch_rate, @secondary_species.catch_rate].min
             @happiness   = ((@primary_species.happiness + @secondary_species.happiness) / 2.0).round
 
-            # Moves: union of both parents. When both parents teach the same move at
-            # a level, keep the lower level (earlier access is more lenient).
-            primary_level_moves = @primary_species.moves.map { |entry| entry.dup }
-            secondary_level_moves = @secondary_species.moves.map { |entry| entry.dup }
+            # Moves: union of both parents' full learnsets (including moves inherited
+            # from their own pre-evolutions), since fusions have no PBS-defined
+            # prevolution chain of their own to inherit through.
+            # When both parents teach the same move at a level, keep the lower level
+            # (earlier access is more lenient).
+            primary_level_moves = @primary_species.level_moves.map { |entry| entry.dup }
+            secondary_level_moves = @secondary_species.level_moves.map { |entry| entry.dup }
             combined_level_moves = {}
             (primary_level_moves + secondary_level_moves).each do |entry|
                 level, move = entry
@@ -214,7 +217,11 @@ module GameData
 
             @form_move = nil
 
-            @tutor_moves = (@primary_species.tutor_moves + @secondary_species.tutor_moves).uniq
+            # Includes each component's own inherited_tutor_moves so that tutor/egg
+            # moves inherited from a component's real pre-evolution (or unlocked by
+            # an ancestor's TutorAny flag) aren't lost, mirroring the level_moves fix above.
+            @tutor_moves = (@primary_species.tutor_moves + @primary_species.inherited_tutor_moves +
+                            @secondary_species.tutor_moves + @secondary_species.inherited_tutor_moves).uniq
             @tutor_moves.sort_by! { |a| a.to_s }
 
             @line_moves = (@primary_species.line_moves + @secondary_species.line_moves).uniq
