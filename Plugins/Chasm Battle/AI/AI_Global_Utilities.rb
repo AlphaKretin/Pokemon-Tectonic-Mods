@@ -1,4 +1,24 @@
 #=============================================================================
+# Enumerable#sort_by (and Array#sort_by!) are not guaranteed to be stable --
+# ties can resolve differently by platform/Ruby build, which caused Windows
+# vs. Linux battle-AI divergence (see [[project_platform_divergence_root_cause]]
+# in memory). stable_sort_by/stable_sort_by! break ties by original index, so
+# any score-based sort in battle/AI code gets identical results everywhere
+# without each call site having to remember its own tie-break key.
+#=============================================================================
+module Enumerable
+    def stable_sort_by
+        each_with_index.sort_by { |item, index| [yield(item), index] }.map(&:first)
+    end
+end
+
+class Array
+    def stable_sort_by!
+        replace(stable_sort_by { |item| yield(item) })
+    end
+end
+
+#=============================================================================
 # Get approximate properties for a battler
 #=============================================================================
 def pbRoughType(move, user)
