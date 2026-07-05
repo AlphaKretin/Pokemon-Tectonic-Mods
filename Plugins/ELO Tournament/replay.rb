@@ -25,14 +25,24 @@ module EloTournament
         t2 = GameData::Trainer.get(ENV["ELO_REPLAY_T2_TYPE"].to_sym, ENV["ELO_REPLAY_T2_NAME"], (ENV["ELO_REPLAY_T2_VERSION"] || "0").to_i)
         seed = ENV["ELO_REPLAY_SEED"].to_i
         format = ENV["ELO_REPLAY_FORMAT"] || "single"
+        # Substring match, same convention as tournament.rb's BATTLE_MODE/
+        # UNCURSED_RUN -- lets format carry both axes (e.g. "double_uncursed")
+        # without its own dedicated branch per combination.
+        battleMode = format.include?("double") ? "double" : "single"
+        uncursed = format.include?("uncursed")
         outputName = (ENV["ELO_REPLAY_NAME"] || "#{trainerLabel(t1)}_vs_#{trainerLabel(t2)}_#{format}_#{seed}")
             .gsub(/[^A-Za-z0-9_.-]/, "_")
 
         $current_save_file_name ||= REPLAY_SAVE_FILE_NAME
 
+        if uncursed
+            applyCurseStripping!(t1)
+            applyCurseStripping!(t2)
+        end
+
         result = begin
             srand(seed)
-            r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: format, saveBattle: true, backdrop: ENV["ELO_REPLAY_BACKDROP"])
+            r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: battleMode, saveBattle: true, backdrop: ENV["ELO_REPLAY_BACKDROP"])
 
             saveFileName = $current_save_file_name.split("/")[1].delete_suffix(".rxdata")
             recordsPath = "./VSRecorder/#{saveFileName}"
