@@ -32,7 +32,7 @@ module EloTournament
 
         result = begin
             srand(seed)
-            r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: format, saveBattle: true)
+            r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: format, saveBattle: true, backdrop: ENV["ELO_REPLAY_BACKDROP"])
 
             saveFileName = $current_save_file_name.split("/")[1].delete_suffix(".rxdata")
             recordsPath = "./VSRecorder/#{saveFileName}"

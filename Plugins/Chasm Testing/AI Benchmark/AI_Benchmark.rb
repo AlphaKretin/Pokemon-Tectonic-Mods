@@ -315,7 +315,7 @@ module AIBenchmark
     # result: 1 = test side (party1) wins, 2 = baseline side (party2) wins,
     #         0 = draw / timeout
     #--------------------------------------------------------------------------
-    def self.runBattle(trainerData1, trainerData2, heuristic1, heuristic2, battleMode: "single", saveBattle: false)
+    def self.runBattle(trainerData1, trainerData2, heuristic1, heuristic2, battleMode: "single", saveBattle: false, backdrop: nil)
         trainer1 = trainerData1.to_trainer
         trainer2 = trainerData2.to_trainer
         party1 = trainer1.party
@@ -366,7 +366,7 @@ module AIBenchmark
         # @battle_rules["backdrop"] -- replay playback re-applies that
         # snapshot (PokeBattle_Recording.rb's rules-replay loop) and would
         # otherwise stomp this back to "" with the stale pre-fix value.
-        battle.backdrop = "indoor1" if saveBattle
+        battle.backdrop = (backdrop || "indoor1") if saveBattle
 
         # Every normal battle-starting path (TrainerBattles.rb, WildBattles.rb,
         # BossBattles.rb) calls this before pbStartBattle -- it's what populates

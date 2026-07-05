@@ -39,9 +39,25 @@ module EloTournament
     end
 
     def self.applyWatchDisplayOverrides!
+        # Also read directly (not just via showAnims) by a few animations for
+        # Fast-mode timing (PokeballThrowCaptureAnimation.rb,
+        # BattlerDamageAnimation.rb, PokeBattle_Scene_Animations.rb), so it's
+        # still worth setting even though it alone can't fix showAnims itself
+        # -- see force_show_anims in watchReplay! below for why.
         $Options.battlescene = ENV["ELO_WATCH_BATTLESCENE"].to_i if ENV["ELO_WATCH_BATTLESCENE"]
         $Options.textspeed = ENV["ELO_WATCH_TEXTSPEED"].to_i if ENV["ELO_WATCH_TEXTSPEED"]
         $Options.battle_transitions = ENV["ELO_WATCH_TRANSITIONS"].to_i if ENV["ELO_WATCH_TRANSITIONS"]
+        # Muting is just the volume sliders, same in-memory-only pattern as
+        # the above -- no need to touch the engine's BGM-selection logic.
+        $Options.bgmvolume = ENV["ELO_WATCH_BGMVOLUME"].to_i if ENV["ELO_WATCH_BGMVOLUME"]
+        $Options.mevolume = ENV["ELO_WATCH_MEVOLUME"].to_i if ENV["ELO_WATCH_MEVOLUME"]
+        $Options.sevolume = ENV["ELO_WATCH_SEVOLUME"].to_i if ENV["ELO_WATCH_SEVOLUME"]
+        # A specific BGM track (e.g. Audio/BGM/Battle wild.ogg -> "Battle wild")
+        # to play instead of whatever pbGetTrainerBattleBGM would normally
+        # derive from the recorded opponent -- pbGetTrainerBattleBGM already
+        # checks $PokemonGlobal.nextBattleBGM first, so this is a plain
+        # existing hook (pbSetNextBattleBGM), not a new mechanism.
+        pbSetNextBattleBGM(ENV["ELO_WATCH_BGM"]) if ENV["ELO_WATCH_BGM"]
     end
 
     def self.watchReplay!
@@ -57,7 +73,17 @@ module EloTournament
         # as more than an ordinary win/loss/draw.
         error_log_before = errorLogSize
         result = begin
-            decision = playRecordedBattle(ENV["ELO_WATCH_REPLAY_NAME"])
+            # AI-vs-AI recordings always carry a baked-in "noanims" rule
+            # (AI_Benchmark.rb sets showAnims=false for simulation speed),
+            # which otherwise permanently clobbers whatever
+            # $Options.battlescene would have produced (see
+            # PokeBattle_Recording.rb's playRecordedBattle). Force the
+            # boolean directly rather than relying on $Options.battlescene
+            # alone -- that's still set above for its separate role in a
+            # few animations' Fast-mode timing, but can't survive the
+            # baked-in rule clobber on its own.
+            force_show_anims = ENV["ELO_WATCH_BATTLESCENE"] ? (ENV["ELO_WATCH_BATTLESCENE"].to_i != 2) : nil
+            decision = playRecordedBattle(ENV["ELO_WATCH_REPLAY_NAME"], force_show_anims: force_show_anims)
             error_log_entry = nil
             if errorLogSize > error_log_before && File.exist?(errorLogPath)
                 File.open(errorLogPath, "rb") do |f|

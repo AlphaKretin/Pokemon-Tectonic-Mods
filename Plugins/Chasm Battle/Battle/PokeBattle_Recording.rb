@@ -346,7 +346,7 @@ class PokeBattle_TectonicReplayedBattle < PokeBattle_Battle
 	include PokeBattle_BattleReplayer
 end
 
-def playRecordedBattle(record_name)
+def playRecordedBattle(record_name, force_show_anims: nil)
 	original_level_cap = getLevelCap
 	scene = pbNewBattleScene
 	begin
@@ -357,6 +357,14 @@ def playRecordedBattle(record_name)
 	end
 
 	pbPrepareBattle(battle)
+	# AI-vs-AI recordings always carry showAnims=false (AI_Benchmark.rb sets
+	# it for simulation speed), which pbPrepareBattle's rules-replay then
+	# treats as a "noanims" battle rule baked into the recording -- clobbering
+	# whatever the $Options.battlescene-based default would have been
+	# (Overworld_BattleStarting.rb:83-84). force_show_anims lets a caller
+	# (e.g. the viewer's watch.rb) override that baked-in value explicitly,
+	# same true/false the battlescene option would otherwise have produced.
+	battle.showAnims = force_show_anims unless force_show_anims.nil?
 	battle.registerRules
   $PokemonTemp.clearBattleRules
 
