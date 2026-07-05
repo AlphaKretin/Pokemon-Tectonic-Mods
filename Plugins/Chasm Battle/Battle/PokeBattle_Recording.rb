@@ -390,4 +390,5 @@ def playRecordedBattle(record_name)
 	end
 
 	setLevelCap(original_level_cap, false)
+	decision
 end

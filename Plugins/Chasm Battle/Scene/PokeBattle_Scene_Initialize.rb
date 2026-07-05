@@ -241,6 +241,15 @@ class PokeBattle_Scene
       end
       spriteX, spriteY = PokeBattle_SceneConstants.pbTrainerPosition(0,idxTrainer,numTrainers)
       trainer = pbAddSprite("player_#{idxTrainer+1}",spriteX,spriteY,trainerFile,@viewport)
+      if !trainer.bitmap
+        # Most NPC trainer types on this fork have no back sprite at all,
+        # unlike the player's own outfits. Fall back to the front sprite
+        # so the trainer is still visually identifiable instead of leaving
+        # a nil bitmap, which crashes later (ballTracksHand's hand-tracking
+        # math reads traSprite.bitmap unconditionally).
+        trainerFile = GameData::TrainerType.front_sprite_filename(trainerType)
+        trainer = pbAddSprite("player_#{idxTrainer+1}",spriteX,spriteY,trainerFile,@viewport)
+      end
       return if !trainer.bitmap
       # Alter position of sprite
       trainer.z  = 30+idxTrainer

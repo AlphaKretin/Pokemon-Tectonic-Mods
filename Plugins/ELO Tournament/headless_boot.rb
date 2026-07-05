@@ -250,6 +250,8 @@ if ENV["ELO_TOURNAMENT"]
             dump_profile_timing! if ENV["ELO_PROFILE_TIMING"]
         elsif ENV["ELO_SAVE_REPLAY"]
             EloTournament.saveReplay!
+        elsif ENV["ELO_WATCH_REPLAY_NAME"]
+            EloTournament.watchReplay!
         elsif ENV["ELO_RUN_BRACKET"]
             EloTournament.runBracket!
         elsif ENV["ELO_DUMP_TRAINER_CARD_DATA"]
