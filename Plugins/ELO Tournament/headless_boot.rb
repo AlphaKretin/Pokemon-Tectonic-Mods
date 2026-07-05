@@ -94,6 +94,91 @@ if ENV["ELO_TOURNAMENT"]
         return 0
     end
 
+    # Temporary diagnostic (ELO_TEST_RNG_TRACE=path): logs every pbRandom/
+    # pbAIRandom draw as "index\tsource\targ\tresult" to the given path.
+    # Used to diff the exact RNG sequence between two platform builds for
+    # an identical srand(seed) run -- if the traces match bit-for-bit but
+    # the battle result still diverges, the RNG itself isn't the cause.
+    #
+    # Patches pbRandom/pbAIRandom rather than Kernel#rand directly: an
+    # earlier attempt aliased Kernel#rand itself and logged zero calls
+    # despite a normal battle running to completion with no errors --
+    # mkxp-z's Ruby runtime apparently doesn't dispatch bare rand() through
+    # a method a normal alias_method can intercept.
+    #
+    # Patches PokeBattle_BattleRecorder#pbRandom specifically, not
+    # PokeBattle_Battle#pbRandom: AIBenchmark.runBattle (what
+    # testSinglePairing!/testBatchPairings! actually call) instantiates
+    # PokeBattle_TectonicRecordedBattle, which `include`s
+    # PokeBattle_BattleRecorder -- that module's own pbRandom (recording
+    # each draw into @random for replay) sits above PokeBattle_Battle in
+    # the ancestor chain and shadows it completely, which is why patching
+    # the base class first logged nothing.
+    def install_rng_trace!
+        Kernel.instance_variable_set(:@rng_trace_n, 0)
+        f = File.open(ENV["ELO_TEST_RNG_TRACE"], "w")
+        f.sync = true
+        Kernel.instance_variable_set(:@rng_trace_file, f)
+
+        def log_rng_trace!(source, arg, result, call_site)
+            n = Kernel.instance_variable_get(:@rng_trace_n) + 1
+            Kernel.instance_variable_set(:@rng_trace_n, n)
+            Kernel.instance_variable_get(:@rng_trace_file).puts("#{n}\t#{source}\t#{arg.inspect}\t#{result}\t#{call_site}")
+        end
+
+        PokeBattle_BattleRecorder.class_eval do
+            alias_method :pbRandom_preTrace, :pbRandom
+            define_method(:pbRandom) do |x|
+                call_site = caller_locations(1, 20)&.map(&:to_s)&.join(" | ")
+                result = pbRandom_preTrace(x)
+                log_rng_trace!("pbRandom", x, result, call_site)
+                result
+            end
+        end
+
+        PokeBattle_AI.class_eval do
+            alias_method :pbAIRandom_preTrace, :pbAIRandom
+            define_method(:pbAIRandom) do |x|
+                call_site = caller_locations(1, 20)&.map(&:to_s)&.join(" | ")
+                result = pbAIRandom_preTrace(x)
+                log_rng_trace!("pbAIRandom", x, result, call_site)
+                result
+            end
+        end
+
+        # Logs into the *same* file/counter as the pbRandom/pbAIRandom draws
+        # above (not a separate log) so move-usage entries interleave with
+        # RNG draws in true chronological order -- lets us read off exactly
+        # which move was executing directly before/after any given draw,
+        # rather than having to correlate two logs by timestamp.
+        PokeBattle_Battler.class_eval do
+            alias_method :pbUseMove_preTrace, :pbUseMove
+            define_method(:pbUseMove) do |choice, specialUsage = false|
+                moveName = choice[2]&.name || "(nil move)"
+                log_rng_trace!("pbUseMove", pbThis, moveName, nil)
+                pbUseMove_preTrace(choice, specialUsage)
+            end
+        end
+
+        # Logs the pre-sort candidate-move array [moveIndex, score, target]
+        # that pbChooseMovesTrainer is about to run
+        # `choices.sort_by { |choice| -choice[1] }` on -- Array#sort_by isn't
+        # guaranteed stable, so if two moves tie on score, which one lands
+        # in sortedChoices[0] is implementation/platform-dependent. This
+        # dumps move name + score (in the *original*, pre-sort order the
+        # moveset was iterated in) so a tie between the two platforms'
+        # differing move picks would show up directly as equal scores here.
+        PokeBattle_AI.class_eval do
+            alias_method :pbChooseMovesTrainer_preTrace, :pbChooseMovesTrainer
+            define_method(:pbChooseMovesTrainer) do |idxBattler, choices|
+                user = @battle.battlers[idxBattler]
+                summary = choices.map { |c| "#{user.getMoves[c[0]]&.name}=#{c[1]}(tgt#{c[2]})" }.join(",")
+                log_rng_trace!("aiChoices", user.pbThis, summary, nil)
+                pbChooseMovesTrainer_preTrace(idxBattler, choices)
+            end
+        end
+    end
+
     # Temporary diagnostic (ELO_PROFILE_TIMING): wraps the four per-round
     # battle phases plus the two AI sub-steps with wall-clock timing.
     if ENV["ELO_PROFILE_TIMING"]
@@ -156,6 +241,7 @@ if ENV["ELO_TOURNAMENT"]
         # Game_Variables.new default (0), an invalid Pokemon level. Max it out
         # so these trainers fight at full strength instead of crashing.
         setLevelCap(MAX_LEVEL_CAP, false)
+        install_rng_trace! if ENV["ELO_TEST_RNG_TRACE"]
         if ENV["ELO_TEST_SINGLE_PAIRING"]
             EloTournament.testSinglePairing!
             dump_profile_timing! if ENV["ELO_PROFILE_TIMING"]
