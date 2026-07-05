@@ -35,5 +35,6 @@ def hidden_map_encounter_switch_hash
 		264 => STORM_SOUND_VISITED_SWITCH, # Storm Sound
 		192 => FIELD_OF_SPIRES_VISITED_SWITCH, # Field of Spires
 		425 => SHIMMER_HAVEN_VISITED_SWITCH, # Blustery Bosk
+		120 => HOLLOWED_LAYER_VISITED_SWITCH, # Hollowed Layer
 	}
 end

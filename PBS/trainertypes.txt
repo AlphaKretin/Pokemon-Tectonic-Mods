@@ -18,6 +18,12 @@ Gender = Female
 BaseMoney = 80
 BattleBGM = Battle another
 #-------------------------------
+[ANOTHERPOSSIBLERAFAEL]
+Name = Another Possible
+Gender = Male
+BaseMoney = 80
+BattleBGM = Battle another
+#-------------------------------
 [ANOTHERPOSSIBLETAMARIND]
 Name = Another Possible
 Gender = Female
@@ -77,6 +83,13 @@ IntroBGM = ARTIST
 CableClub = true
 #-------------------------------
 [ARTIST3]
+Name = Artist
+Gender = Female
+BaseMoney = 32
+IntroBGM = ARTIST
+CableClub = true
+#-------------------------------
+[ARTIST3_GHOST]
 Name = Artist
 Gender = Female
 BaseMoney = 32
@@ -404,6 +417,13 @@ BaseMoney = 64
 IntroBGM = POKEFAN
 CableClub = true
 #-------------------------------
+[COLLECTOR_F]
+Name = Collector
+Gender = Female
+BaseMoney = 64
+IntroBGM = POKEFAN
+CableClub = true
+#-------------------------------
 [COOLTRAINERSQUAD_2]
 Name = Cool Squad
 Gender = Unknown
@@ -442,7 +462,6 @@ CableClub = true
 Name = Pro Trainer
 Gender = Female
 BaseMoney = 60
-Policies = PROACTIVE_MATCHUP_SWAPPER
 IntroBGM = ELITETRAINER
 BattleBGM = Battle pro
 CableClub = true
@@ -479,7 +498,6 @@ CableClub = true
 Name = Pro Trainer
 Gender = Male
 BaseMoney = 60
-Policies = PROACTIVE_MATCHUP_SWAPPER
 IntroBGM = ELITETRAINER
 BattleBGM = Battle pro
 CableClub = true
@@ -580,7 +598,6 @@ IntroBGM = DITTO_BACKPACKER
 Name = Pro Trainer
 Gender = Female
 BaseMoney = 32
-Policies = PROACTIVE_MATCHUP_SWAPPER
 IntroBGM = DITTO_ELITETRAINER
 BattleBGM = Battle pro
 #-------------------------------
@@ -619,6 +636,13 @@ CableClub = true
 [DRAGONTAMER2]
 Name = Dragon Tamer
 Gender = Male
+BaseMoney = 32
+IntroBGM = ACETRAINER
+CableClub = true
+#-------------------------------
+[DRAGONTAMER_F]
+Name = Dragon Tamer
+Gender = Female
 BaseMoney = 32
 IntroBGM = ACETRAINER
 CableClub = true
@@ -791,6 +815,13 @@ BaseMoney = 32
 IntroBGM = PSYCHIC
 CableClub = true
 #-------------------------------
+[HEXMANIAC_GHOST]
+Name = Hex Maniac
+Gender = Female
+BaseMoney = 32
+IntroBGM = PSYCHIC
+CableClub = true
+#-------------------------------
 [HIKER]
 Name = Hiker
 Gender = Male
@@ -876,6 +907,18 @@ Gender = Male
 BaseMoney = 32
 IntroBGM = POKEFAN
 CableClub = true
+#-------------------------------
+[KATY]
+Name = Katy
+Gender = Male
+BaseMoney = 120
+IntroBGM = BLACKBELT
+#-------------------------------
+[KILLU]
+Name = Killu
+Gender = Female
+BaseMoney = 120
+IntroBGM = MONK
 #-------------------------------
 [KIMONOGIRL]
 Name = Kimono Girl
@@ -1134,6 +1177,11 @@ BaseMoney = 48
 IntroBGM = PARASOL
 CableClub = true
 #-------------------------------
+[ODDISH]
+Name = Oddish
+Gender = wild
+BaseMoney = 100
+#-------------------------------
 [OFFICEWORKER_F]
 Name = Office Worker
 Gender = Female
@@ -1279,10 +1327,17 @@ BaseMoney = 16
 IntroBGM = AROMALADY
 CableClub = true
 #-------------------------------
+[POKEMONCHAMPION_Vanya]
+Name = Champion
+Gender = Unknown
+BaseMoney = 100
+BattleBGM = Battle champion vanya
+#-------------------------------
 [POKEMONMASTER_Vanya]
 Name = Pokémon Master
 Gender = Unknown
 BaseMoney = 200
+Policies = SKEEVY_EEVEE_VANYA
 IntroBGM = TWINS2
 BattleBGM = Battle vanya final
 #-------------------------------
@@ -1370,16 +1425,19 @@ IntroBGM = ELITETRAINER
 Name = Androgynous
 Gender = Unknown
 BaseMoney = 60
+CableClubName = Pokémon Trainer
 #-------------------------------
 [POKEMONTRAINER_Feminine]
 Name = Feminine
 Gender = Female
 BaseMoney = 60
+CableClubName = Pokémon Trainer
 #-------------------------------
 [POKEMONTRAINER_Masculine]
 Name = Masculine
 Gender = Male
 BaseMoney = 60
+CableClubName = Pokémon Trainer
 #-------------------------------
 [POKEMONTRAINER_RIVALF]
 Name = Pokémon Trainer
@@ -1391,11 +1449,15 @@ Name = Pokémon Trainer
 Gender = Female
 BaseMoney = 60
 #-------------------------------
+[POKEMONTRAINER_Vanya]
+Name = Pokémon Trainer
+Gender = Unknown
+BaseMoney = 100
+#-------------------------------
 [POKEMONTRAINER_Yezera]
 Name = Pokémon Trainer
 Gender = Female
 BaseMoney = 100
-Policies = PREDICTS_PLAYER
 #-------------------------------
 [POLICEMAN]
 Name = Policeman
@@ -1661,6 +1723,13 @@ IntroBGM = LASS2
 CableClub = true
 #-------------------------------
 [SCHOOLKID_F4]
+Name = School Kid
+Gender = Female
+BaseMoney = 20
+IntroBGM = LASS2
+CableClub = true
+#-------------------------------
+[SCHOOLKID_GHOST]
 Name = School Kid
 Gender = Female
 BaseMoney = 20
@@ -2130,6 +2199,18 @@ Gender = Female
 BaseMoney = 100
 BattleBGM = Battle lainie ultra
 #-------------------------------
+[VANYADAD]
+Name = Collector
+Gender = Male
+BaseMoney = 64
+IntroBGM = POKEFAN
+#-------------------------------
+[VANYAMOM]
+Name = Scientist
+Gender = Female
+BaseMoney = 32
+IntroBGM = SCIENTIST
+#-------------------------------
 [VETERANM]
 Name = Veteran
 Gender = Male
@@ -2211,6 +2292,12 @@ Gender = Female
 BaseMoney = 32
 IntroBGM = AROMALADY
 CableClub = true
+#-------------------------------
+[WHIMSICALBOY]
+Name = Whimsical Boy
+Gender = Male
+BaseMoney = 8
+IntroBGM = TWINS
 #-------------------------------
 [WILDPACK]
 Name = Wild Pack

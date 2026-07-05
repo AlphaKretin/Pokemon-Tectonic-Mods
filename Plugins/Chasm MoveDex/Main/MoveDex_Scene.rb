@@ -264,12 +264,23 @@ class MoveDex_Scene
                 end
             elsif Input.trigger?(Input::USE)
                 if @selected_move
-                    pbFadeOutIn do
+                    oldsprites = pbFadeOutAndHide(@sprites)
+                    loop do
                         moveDexEntryScene = MoveDex_Entry_Scene.new
                         screen = MoveDex_Entry_Screen.new(moveDexEntryScene)
                         @scroll = screen.pbStartScreen(@moveList,@scroll)
-                        pbRefresh
+                        # Cross-dex link (e.g. clicked a species to open MasterDex)
+                        if $dex_cross_link
+                            link = $dex_cross_link
+                            $dex_cross_link = nil
+                            navigateDexChain(link[:type], link[:id])
+                            # After the chain completes, reopen the same move entry
+                        else
+                            break
+                        end
                     end
+                    pbRefresh
+                    pbFadeInAndShow(@sprites, oldsprites)
                 else
                     pbPlayBuzzerSE
                 end

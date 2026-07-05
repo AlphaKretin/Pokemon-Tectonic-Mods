@@ -23,7 +23,7 @@ PokEstate::LoadDataDependentAwards += proc {
 ##############################################
 # TRIBE REWARDS (22 of them)
 ##############################################
-tribeThreshold = [50]
+tribeThreshold = [100]
 tribeRewards = [[:EXPCANDYXL,4]]
 
 PokEstate::LoadDataDependentAwards += proc {
@@ -41,7 +41,7 @@ PokEstate::LoadDataDependentAwards += proc {
 }
 
 ##############################################
-# ROUTE REWARDS (45  of them)
+# ROUTE REWARDS (47 of them)
 ##############################################
 # 1
 SMALL_ROUTES_CASABA = [
@@ -51,22 +51,21 @@ SMALL_ROUTES_CASABA = [
 # 13
 SMALL_ROUTES_PRE_SURF = [
     56, # Novo Town
-    25, # Grouz
     36, # Grouz Mine
     326, # Carnation Graves
     6, # LuxTech Campus
     122, # LuxTech Sewers
     40, # Gigalith's Guts
-    120, # Hollowed Layer
     214, # Team Chasm HQ
     121, # Kilna Ascent
     37, # Svait
     117, # Ice Cave
-    8, # Velenz
     129, # Barren Crater
+    81, # East Tunnel
+    431, # Ship Graveyard
 ]
 
-# 7
+# 6
 SMALL_ROUTES_POST_SURF = [
     155, # Prizca West
     34, # Battle Plaza
@@ -74,7 +73,6 @@ SMALL_ROUTES_POST_SURF = [
     187, # Prizca East
     220, # Ancient Sewers
     217, # Sweetrock Harbor
-    316, # Sandstone Estuary
 ]
  
 # 6
@@ -87,18 +85,19 @@ MEDIUM_ROUTES_CASABA = [
     26, # Bluepoint Grotto
 ]
 
-# 6
+# 7
 MEDIUM_ROUTES_PRE_SURF =
 [
     59, # Feebas' Fin
     60, # Shipping Lane
-    3, # The Shelf
-    55, # Lingering Delta
+    3, # Kilna Turf
     11, # Eleig River Crossing
     7, # Repora Forest
+    8, # Velenz
+    25, # Grouz
 ]
 
-# 7
+# 10
 MEDIUM_ROUTES_POST_SURF = [
     130, # Canal Desert
     186, # Frostflow Farms
@@ -107,22 +106,25 @@ MEDIUM_ROUTES_POST_SURF = [
     196, # Boiling Cave
     288, # Underground River
     218, # Abyssal Cavern
+    120, # Hollowed Layer
+    211, # Split Peaks
+    316, # Sandstone Estuary
 ]
 
 # 0
 BIG_ROUTES_CASABA = [
 ]
 
-# 2
+# 3
 BIG_ROUTES_PRE_SURF = [
     53, # The Shelf
     301, # County Park
+    55, # Lingering Delta
 ]
 
-# 2
+# 1
 BIG_ROUTES_POST_SURF = [
     185, # Eleig Stretch
-    211, # Split Peaks
 ]
 
 PokEstate::LoadDataDependentAwards += proc {
@@ -304,4 +306,29 @@ PokEstate::LoadDataDependentAwards += proc {
             }
         }
     )
+}
+
+##############################################
+# Level cap completion
+##############################################
+
+PokEstate::LoadDataDependentAwards += proc {
+    [15,20,25,30,35,40,45,50,55,60,65,70].each do |levelCap|
+        id = ("LEVELCAP" + levelCap.to_s + "AWARD").to_sym
+        PokEstate::GrantAwards.add(id,
+            proc { |pokedex|
+                itemsGiven = candiesForLevel(levelCap)
+                for i in 0...itemsGiven.length/2
+                    itemsGiven[i*2 + 1] *= 4 # Worth four trainer perfects / two saccharite deposits
+                end
+                next {
+                    reward: itemsGiven,
+                    description: _INTL("Level cap {1}",levelCap),
+                    page: 5,
+                    threshold: levelCap,
+                    amount: getLevelCap(),
+                }
+            }
+        )
+    end
 }

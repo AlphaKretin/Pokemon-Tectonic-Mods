@@ -1,7 +1,7 @@
 ﻿# See the documentation on the wiki to learn how to edit this file.
 #-------------------------------
 [000]
-Home = 32,9,7,2
+Home = 136,31,42,2
 WildBattleBGM = Battle wild.ogg
 TrainerBattleBGM = DPPTTrainer.ogg
 AvatarBattleBGM = Battle avatar.ogg
@@ -212,6 +212,7 @@ Environment = Grass
 Outdoor = false
 ShowArea = true
 Bicycle = true
+MapPosition = 0,19,18
 BattleBack = cave1
 Environment = Cave
 #-------------------------------
@@ -270,7 +271,7 @@ ShowArea = true
 Bicycle = true
 MapPosition = 0,11,3
 BattleBack = city
-MapSize = 1,1
+MapSize = 3,111
 #-------------------------------
 [035]
 # Impromptu Lab
@@ -353,6 +354,7 @@ Bicycle = false
 Outdoor = false
 ShowArea = false
 Bicycle = false
+MapPosition = 0,21,18
 #-------------------------------
 [045]
 # Secret Room
@@ -996,7 +998,7 @@ TeleportBlocked = true
 Outdoor = false
 ShowArea = true
 Bicycle = true
-MapPosition = 0,11,11
+MapPosition = 0,11,12
 BattleBack = cave2
 Environment = Cave
 #-------------------------------
@@ -1709,7 +1711,7 @@ Bicycle = false
 # Renovated House
 Outdoor = false
 ShowArea = false
-Bicycle = false
+Bicycle = true
 HealingSpot = 187,55,37
 MapPosition = 0,15,4
 #-------------------------------
@@ -1717,7 +1719,7 @@ MapPosition = 0,15,4
 # Your House
 Outdoor = false
 ShowArea = false
-Bicycle = false
+Bicycle = true
 HealingSpot = 187,55,37
 MapPosition = 0,15,4
 #-------------------------------
@@ -2166,6 +2168,7 @@ Environment = Grass
 Outdoor = false
 ShowArea = false
 Bicycle = true
+TeleportBlocked = true
 #-------------------------------
 [303]
 # Zygarde's Chamber
@@ -2493,6 +2496,7 @@ Bicycle = false
 Outdoor = false
 ShowArea = true
 Bicycle = true
+WildBattleBGM = Battle ultra beast.ogg
 Environment = UltraSpace
 #-------------------------------
 [350]
@@ -2911,7 +2915,7 @@ Environment = Ice
 # Mirror Maze
 Outdoor = false
 ShowArea = true
-Bicycle = true
+Bicycle = false
 BattleBack = cave1
 Environment = Ice
 #-------------------------------
@@ -3222,3 +3226,38 @@ Weather = Stillness,100
 MapPosition = 0,20,7
 BattleBack = cave1
 Environment = Cave
+#-------------------------------
+[448]
+# Dissipated Plane
+ShowArea = true
+Bicycle = true
+Weather = Snow,100
+BattleBack = snow
+Environment = Snow
+#-------------------------------
+[449]
+# Den of Potential
+ShowArea = true
+Bicycle = true
+BattleBack = city
+Environment = Cave
+#-------------------------------
+[450]
+# Convection Beacon
+ShowArea = true
+Bicycle = true
+#-------------------------------
+[453]
+# Deep Dissipated Plane
+ShowArea = true
+Bicycle = true
+Weather = Blizzard,100
+BattleBack = snow
+Environment = Snow
+#-------------------------------
+[456]
+# Center Station
+Outdoor = false
+ShowArea = false
+Bicycle = false
+HealingSpot = 448,25,13

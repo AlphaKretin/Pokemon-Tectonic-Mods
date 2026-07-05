@@ -655,22 +655,27 @@ class PokemonPokedex_Scene
     end
 
     def searchBySignatureAbility
-        selection = pbMessage(_INTL("Which search?"), [_INTL("Has Signature Ability"), _INTL("Doesn't"), _INTL("Cancel")], 3)
-        if selection != 2
+        selection = pbMessage(_INTL("Signature abilities?"), [_INTL("Neither"), _INTL("At Least One"), _INTL("Exactly One"), _INTL("Both"), _INTL("Cancel")], 5)
+        if selection != 4
             dexlist = searchStartingList
 
             dexlist = dexlist.find_all do |dex_item|
                 next false if autoDisqualifyFromSearch(dex_item[:species])
 
-                hasSignatureAbility = false
+                signatureAbilityCount = 0
                 dex_item[:data].abilities.each do |ability|
-                    hasSignatureAbility = true if GameData::Ability.get(ability).is_signature?
+                    signatureAbilityCount += 1 if GameData::Ability.get(ability).is_signature?
                 end
                 
-                if selection == 0
-                    next hasSignatureAbility
-                else
-                    next !hasSignatureAbility
+                case selection
+                when 0
+                    next signatureAbilityCount == 0
+                when 1
+                    next signatureAbilityCount >= 1
+                when 2
+                    next signatureAbilityCount == 1
+                when 3
+                    next signatureAbilityCount == 2
                 end
             end
         end

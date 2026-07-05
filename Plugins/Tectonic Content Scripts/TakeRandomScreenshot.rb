@@ -37,4 +37,6 @@ def takeRandomScreenshot(screenshotLabel = -1)
     get_player.opacity = 255
     
     pbWait(1)
+
+    return $game_map.name
 end

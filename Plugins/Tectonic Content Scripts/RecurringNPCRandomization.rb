@@ -194,25 +194,79 @@ DebugMenuCommands.register("setnpcchosen2", {
 RECURRING_QUEST_FAILURE_SWITCH = 56
 
 def imogeneQuestFailed?
-    return getGlobalVariable(IMOGENE_STAGE_VAR) < 5 && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
+    return getGlobalVariable(IMOGENE_STAGE_VAR) < 5 && wasNPCIdSelected?(0) && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
 end
 
 def alessaQuestFailed?
-    return getGlobalVariable(ALESSA_STAGE_VAR) < 5 && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
+    return getGlobalVariable(ALESSA_STAGE_VAR) < 5 && wasNPCIdSelected?(1) && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
 end
 
 def skylerQuestFailed?
-    return getGlobalVariable(SKYLER_STAGE_VAR) < 5 && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
+    return getGlobalVariable(SKYLER_STAGE_VAR) < 5 && wasNPCIdSelected?(2) && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
 end
 
 def keoniQuestFailed?
-    return getGlobalVariable(KEONI_STAGE_VAR) < 5 && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
+    return getGlobalVariable(KEONI_STAGE_VAR) < 5 && wasNPCIdSelected?(3) && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
 end
 
 def eifionQuestFailed?
-    return getGlobalVariable(EIFION_STAGE_VAR) < 5 && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
+    return getGlobalVariable(EIFION_STAGE_VAR) < 5 && wasNPCIdSelected?(4) && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
 end
 
 def candyQuestFailed?
-    return getGlobalVariable(CANDY_STAGE_VAR) < 5 && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
+    return getGlobalVariable(CANDY_STAGE_VAR) < 5 && wasNPCIdSelected?(5) && getGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
+end
+
+def pointOfNoReturnConfirmation
+    canCrimsonMaskNPCQuestFail = !getGlobalSwitch(NPC1_TRAITOR_SWITCH)
+    canTealMaskNPCQuestFail = !getGlobalSwitch(NPC2_TRAITOR_SWITCH)
+
+    if canCrimsonMaskNPCQuestFail && canTealMaskNPCQuestFail
+        pbMessage(_INTL("\\wm\\ss\\l[2]Beyond this door, a <imp>Crimson Mask</imp> and a <imp>Teal Mask</imp> await you."))
+    elsif canCrimsonMaskNPCQuestFail
+        pbMessage(_INTL("\\wm\\ss\\l[2]Beyond this door, a <imp>Crimson Mask</imp> awaits you."))
+    elsif canTealMaskNPCQuestFail
+        pbMessage(_INTL("\\wm\\ss\\l[2]Beyond this door, a <imp>Teal Mask</imp> awaits you."))
+    else
+        return true # Skip confirmation
+    end
+    pbMessage(_INTL("\\wm\\ss\\l[2]If you continue, reconciliation will <imp>become impossible</imp>."))
+    return pbConfirmMessageSerious(_INTL("Enter through the black door?"))
+end
+
+def enterPointOfNoReturn
+    setGlobalSwitch(RECURRING_QUEST_FAILURE_SWITCH)
+    failQuest(:QUEST_IMOGENE) if imogeneQuestFailed?
+    failQuest(:QUEST_ALESSA) if alessaQuestFailed?
+    failQuest(:QUEST_SKYLER) if skylerQuestFailed?
+    failQuest(:QUEST_KEONI) if keoniQuestFailed?
+    failQuest(:QUEST_EIFION) if eifionQuestFailed?
+    failQuest(:QUEST_CANDY) if candyQuestFailed?
+end
+
+def WAQFSI
+    writeAllQuestFailureSwitchInstances
+end
+
+def writeAllQuestFailureSwitchInstances
+    fileName = "Analysis/quest_failure_switch_instances.txt"
+    mapData = Compiler::MapData.new
+    File.open(fileName,"wb") { |file|
+        for map_id in mapData.mapinfos.keys.sort
+            map = mapData.getMap(map_id)
+            next if !map || !mapData.mapinfos[map_id]
+            mapName = mapData.mapinfos[map_id].name
+            for key in map.events.keys
+                event = map.events[key]
+                event.pages.each_with_index do |page, page_index|
+                    condition = page.condition
+                    next unless condition.switch1_id == RECURRING_QUEST_FAILURE_SWITCH || condition.switch2_id == RECURRING_QUEST_FAILURE_SWITCH
+                    string = "Map \"#{mapName}\" (#{map_id}), event \"#{event.name}\" (#{event.id}), page #{page_index}\r\n"
+                    file.write(string)
+                end
+            end
+        end
+    }
+
+    pbMessage(_INTL("Code instance analysis written to #{fileName}"))
 end

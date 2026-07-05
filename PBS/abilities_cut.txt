@@ -521,9 +521,17 @@ Flags = EclipseSynergy
 Name = Heliocentrism
 Description = Traps the foe during gravity.
 #-------------------------------
+[HERDING]
+Name = Herding
+Description = Wild Pokémon are more likely to appear in pairs and to be species you've never caught before.
+#-------------------------------
 [HONEYGATHER]
 Name = Honey Gather
 Description = The Pokémon may gather Honey from somewhere.
+#-------------------------------
+[HONORABLE]
+Name = Honorable
+Description = Lowers priority of status moves used by any Pokémon.
 #-------------------------------
 [HONORAURA]
 Name = Honorable
@@ -567,6 +575,10 @@ Flags = IgnoreScreens,IgnoreSubstitute
 [INFINITESOURCE]
 Name = Infinite Source
 Description = Pokémon that swap in for this have their Speed raised and their PP fully restored.
+#-------------------------------
+[INNARDSOUT]
+Name = Innards Out
+Description = When this Pokémon is knocked out by an attack, the attacker takes damage equal to this Pokémon's previous HP.
 #-------------------------------
 [INNERLIGHT]
 Name = Inner Light
@@ -621,6 +633,10 @@ Description = Boosts the power of kicking moves by 30%.
 [LIBERO]
 Name = Libero
 Description = The Pokémon changes type to that of the move it's about to use.
+#-------------------------------
+[LIFELINE]
+Name = Lifeline
+Description = At the end of each turn, heals self by 1/20th and a party member by the amount this Pokémon was healed.
 #-------------------------------
 [LIGHTMETAL]
 Name = Light Metal
@@ -736,6 +752,11 @@ Description = Sets Fairy Terrain for five turns when hit by an attack.
 Name = Misty Surge
 Description = Turns the ground into Fairy Terrain for 5 turns when entering battle.
 #-------------------------------
+[MODUSSWITCH]
+Name = Modus Switch
+Description = When using Techno Blast, the user can choose the move's type, switching to that form.
+Flags = Immutable
+#-------------------------------
 [MOLDBREAKER]
 Name = Mold Breaker
 Description = Ignores Abilities that would affect its moves.
@@ -779,6 +800,11 @@ Description = Raises Electric-type allies' Sp. Def by 50%.
 Name = Nesting
 Description = Heals 1/12th HP per turn if there's a weather. Immune to weather downsides.
 Flags = AllWeatherSynergy
+#-------------------------------
+[NEUTRALIZINGGAS]
+Name = Neutralizing Gas
+Description = Abilities will be nullified or will not be triggered.
+Flags = Immutable
 #-------------------------------
 [NIGHTLIGHT]
 Name = Night Light
@@ -954,6 +980,10 @@ Description = Doubles the speed of recoil moves.
 Name = Rattled
 Description = Bug-, Dark- and Ghost-type moves scare it and boost its Speed.
 #-------------------------------
+[RATTLEEM]
+Name = Rattle 'Em
+Description = Moves that can flinch are 50% more likely. Deals 50% more damage to Pokémon with flinch immunity.
+#-------------------------------
 [RECEIVER]
 Name = Receiver
 Description = Copies the Ability of a defeated ally.
@@ -1077,6 +1107,10 @@ Name = Shaky Code
 Description = During eclipse, changes the Pokémon's type to the type of the move it's using.
 Flags = EclipseSynergy
 #-------------------------------
+[SHAREDSPOILS]
+Name = Shared Spoils
+Description = When this Pokémon removes a foe's item, choose a party member to hold it.
+#-------------------------------
 [SHARPNESS]
 Name = Swordplay
 Description = Boosts the power of blade moves by 30%.
@@ -1097,6 +1131,10 @@ Flags = CritImmunity
 [SHIELDWALL]
 Name = Shield Wall
 Description = Takes 50% less damage from hyper-effective attacks.
+#-------------------------------
+[SHOCKSTYLE]
+Name = Shock Style
+Description = Powers up Fighting-type moves by 50%.
 #-------------------------------
 [SHOCKWINGS]
 Name = Shock Wings
@@ -1166,6 +1204,11 @@ Description = The Pokémon moves after all other Pokémon do.
 Name = Stalwart
 Description = Ignores effects changing the target of a move.
 Flags = RedirectionImmunity
+#-------------------------------
+[STAMPEDE]
+Name = Stampede
+Description = Doubles critical hit chance for each Speed step up. All moves can random critical hit.
+Flags = EnablesRandomCrits
 #-------------------------------
 [STEADFAST]
 Name = Steadfast
@@ -1283,6 +1326,10 @@ Description = Prevents foes whose Attack is less than its from fleeing.
 Name = Teravolt
 Description = Moves can be used regardless of Abilities.
 #-------------------------------
+[TERRORIZE]
+Name = Terrorize
+Description = Flinching moves always activate their random effects. However, this Pokémon deals 10% less move damage.
+#-------------------------------
 [TIMESTRETCH]
 Name = Time Stretch
 Description = Between each turn there's another turn where no one moves.
@@ -1303,6 +1350,10 @@ Description = Raises each stat by two steps when a Total Eclipse happens.
 [TOTALMIRROR]
 Name = Total Mirror
 Description = When hit with a special move, hits back instantly with that same move.
+#-------------------------------
+[TOUGHCLAWS]
+Name = Tough Claws
+Description = Increases Attack by 30%.
 #-------------------------------
 [TOXICBOOST]
 Name = Toxic Boost
@@ -1341,6 +1392,11 @@ Description = Upon entry, creates a Trick Room for five turns, inverting the eff
 [TURBOBLAZE]
 Name = Turboblaze
 Description = Moves can be used regardless of Abilities.
+#-------------------------------
+[UNBOUND]
+Name = Unbound
+Description = Moves ignore Abilities that would affect its moves or activate after hitting the target, and immunities due to typing.
+Flags = MoldBreaking,BypassTypeImmunity
 #-------------------------------
 [UNCANNYCOLD]
 Name = Uncanny Cold
@@ -1419,6 +1475,10 @@ Description = Boosts the power of wind-based moves by 30%.
 [WINTERWISDOM]
 Name = Summit Spirit
 Description = Boosts Sp. Atk by 30% in hail.
+#-------------------------------
+[WIRECUTTER]
+Name = Live Wire
+Description = Lays an electrical hazard around the opponent when its HP is lowered below half.
 #-------------------------------
 [WONDERSKIN]
 Name = Wonder Skin

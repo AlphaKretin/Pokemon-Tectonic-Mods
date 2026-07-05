@@ -399,7 +399,7 @@ class PokeBattle_Move_DisableTargetUsingOffTypeMove4 < PokeBattle_Move
 end
 
 #===============================================================================
-# Target will lose 1/4 of max HP at end of each round, while asleep. (Nightmare)
+# Target will lose 1/4 of max HP at end of each round, while asleep.
 #===============================================================================
 class PokeBattle_Move_StartDamageTargetEachTurnIfTargetAsleep < PokeBattle_Move
     def pbFailsAgainstTarget?(_user, target, show_message)
@@ -483,13 +483,15 @@ class PokeBattle_Move_CurseTarget < PokeBattle_Move
 end
 
 #===============================================================================
-# Curses the target. Money is gained from curse damage. (Pharaoh's Curse)
+# The target starts losing 1/8th of its health every turn. When it does,
+# Coins equal to 10 times the HP lost are scattered on the opposing side.
+# (Pharaoh's Curse)
 #===============================================================================
-class PokeBattle_Move_CurseTargetEarnMoneyFromCurse < PokeBattle_Move_CurseTarget
+class PokeBattle_Move_StartDamageTargetAndEarnMoneyEachTurn < PokeBattle_Move_CurseTarget
     def pbFailsAgainstTarget?(user, target, show_message)
         return false if damagingMove?
-        if target.effectActive?(:Curse) && target.effectActive?(:PharaohsCurse)
-            @battle.pbDisplay(_INTL("But it failed, since {1} is already cursed by the Pharoh!", target.pbThis(true))) if show_message
+        if target.effectActive?(:PharaohsCurse)
+            @battle.pbDisplay(_INTL("But it failed, since {1} is already experiencing the pharaoh's curse!", target.pbThis(true))) if show_message
             return true
         end
         return false
@@ -497,13 +499,11 @@ class PokeBattle_Move_CurseTargetEarnMoneyFromCurse < PokeBattle_Move_CurseTarge
 
     def pbEffectAgainstTarget(user, target)
         return if damagingMove?
-        target.applyEffect(:Curse) unless target.effectActive?(:Curse)
         target.applyEffect(:PharaohsCurse) unless target.effectActive?(:PharaohsCurse)
     end
 
     def pbAdditionalEffect(user, target)
         return if target.damageState.substitute
-        target.applyEffect(:Curse) unless target.effectActive?(:Curse)
         target.applyEffect(:PharaohsCurse) unless target.effectActive?(:PharaohsCurse)
     end
 end

@@ -203,7 +203,7 @@ BattleHandlers::UserAbilityEndOfMove.add(:DEADOFWINTER,
   }
 )
 
-BattleHandlers::UserAbilityEndOfMove.add(:SALTATIONSURGE,
+BattleHandlers::UserAbilityEndOfMove.add(:DUSTYTRAIL,
   proc { |ability, user, targets, _move, battle, _switchedBattlers|
       next if battle.pbAllFainted?(user.idxOpposingSide)
       next unless targets.any? { |b| b.damageState.fainted }
@@ -543,6 +543,21 @@ BattleHandlers::UserAbilityEndOfMove.add(:FUELHUNGRY,
 BattleHandlers::UserAbilityEndOfMove.add(:SIRENSONG,
   proc { |ability, user, _targets, move, battle, _switchedBattlers|
       next unless move.soundMove?
+      battle.pbShowAbilitySplash(user, ability)
+      user.eachOpposing do |b|
+        if b.pbAttack > b.pbSpAtk
+          b.tryLowerStat(:ATTACK, user, increment: 1, showFailMsg: true)
+        else
+          b.tryLowerStat(:SPECIAL_ATTACK, user, increment: 1, showFailMsg: true)
+        end
+      end
+      battle.pbHideAbilitySplash(user)
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:BOGGLINGBOLERO,
+  proc { |ability, user, _targets, move, battle, _switchedBattlers|
+      next unless move.danceMove?
       battle.pbShowAbilitySplash(user, ability)
       user.eachOpposing do |b|
         if b.pbAttack > b.pbSpAtk
@@ -900,9 +915,9 @@ BattleHandlers::UserAbilityEndOfMove.add(:SWORDHORNSTYLE,
       next if target.damageState.missed || target.damageState.unaffected
       if target.effectActive?(:SwordHorn)
         target.pbInflictStatus(:NUMB, 0, nil, user) if target.pbCanInflictStatus?(:NUMB, user, true)
-        unless target.pbOwnSide.effectActive?(:Sanctuary)
-            battle.pbAnimation(:SANCTUARY, target, nil)
-            target.pbOwnSide.applyEffect(:Sanctuary, user.getScreenDuration(3))
+        unless user.pbOwnSide.effectActive?(:Sanctuary)
+            battle.pbAnimation(:SANCTUARY, user, nil)
+            user.pbOwnSide.applyEffect(:Sanctuary, user.getScreenDuration(3))
         end
         target.disableEffect(:SwordHorn)
       else
@@ -930,5 +945,14 @@ BattleHandlers::UserAbilityEndOfMove.add(:KARMICBALANCE,
           user.pbLowerMultipleStatSteps(DEFENDING_STATS_2, user, ability: ability)
           user.pbRaiseMultipleStatSteps(ATTACKING_STATS_2, user, ability: ability)
         end
+  }
+)
+
+BattleHandlers::UserAbilityEndOfMove.add(:HITANDRUN,
+  proc { |ability, user, targets, move, battle, _switchedBattlers|
+      next if user.dummy
+      next unless move.damagingMove?
+      next unless targets.any? { |b| b.knockedBelowHalf? }
+      user.applyEffect(:HitAndRunSwitch)
   }
 )

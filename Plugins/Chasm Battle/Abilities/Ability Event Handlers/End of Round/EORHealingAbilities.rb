@@ -33,6 +33,7 @@ BattleHandlers::EORHealingAbility.add(:REJUVENATE,
             next unless data.avatars_purge || data.is_mental?
             battler.disableEffect(effect)
         end
+        battle.scene.pbRefresh
         battle.pbHideAbilitySplash(battler)
     }
 )
@@ -169,7 +170,7 @@ BattleHandlers::EORHealingAbility.add(:DIRECTCURRENT,
       elsif !battler.pbOwnedByPlayer? # Trainer AI
         choice = 0
       else
-        choice = battle.scene.pbShowCommands(_INTL("Where to direct power?"),choices,0)
+        choice = battle.scene.pbChooseWithThinkingLoop(_INTL("Where to direct power?"),choices)
       end
       if choice == 0
         battler.tryRaiseStat(:SPEED, battler)

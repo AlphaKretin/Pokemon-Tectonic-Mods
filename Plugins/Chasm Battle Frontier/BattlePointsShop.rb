@@ -6,7 +6,6 @@ def battlePointsShop
 		:GLEAMPOWDER => 50,
 		:RELICCROWN => 100,
 		:BOXLINK => 50,
-		:STYLINGKIT => 50,
 		:SWEETTOOTH => 75,
 	}
 

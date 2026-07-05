@@ -8,7 +8,7 @@ Events.onWildPokemonCreate += proc {|sender,e|
     chance *= 2 if $catching_minigame.highScore > 0
     chance *= 2 if $catching_minigame.highScore > 40
     chance *= 2 if $catching_minigame.highScore > 80
-    chance *= 2 if herdingActive?
+    chance *= 2 if pokemonLureActive?
 
     next unless rand(200) < chance
 

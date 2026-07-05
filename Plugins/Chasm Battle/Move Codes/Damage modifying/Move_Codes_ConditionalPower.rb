@@ -26,7 +26,7 @@ class PokeBattle_Move_DoubleDamageFirstTurn < PokeBattle_Move
 end
 
 #===============================================================================
-# Power is doubled if Fusion Flare has already been used this round. (Fusion Bolt)
+# Power is doubled if Fusion Flare has already been used this round.
 #===============================================================================
 class PokeBattle_Move_FusionBolt < PokeBattle_Move
     def pbChangeUsageCounters(user, specialUsage)
@@ -54,7 +54,7 @@ class PokeBattle_Move_FusionBolt < PokeBattle_Move
 end
 
 #===============================================================================
-# Power is doubled if Fusion Bolt has already been used this round. (Fusion Flare)
+# Power is doubled if Fusion Bolt has already been used this round.
 #===============================================================================
 class PokeBattle_Move_FusionFlare < PokeBattle_Move
     def pbChangeUsageCounters(user, specialUsage)
@@ -132,6 +132,28 @@ class PokeBattle_Move_TripleDamageAgainstPoisoned < PokeBattle_Move
 end
 
 #===============================================================================
+# Deals 30% more damage if the user is asleep. (Plummet, Ashral Shift)
+#===============================================================================
+class PokeBattle_Move_30DamageIfUserAsleep < PokeBattle_Move
+    def usableWhenAsleep?; return true; end
+    
+    def pbBaseDamage(baseDmg, user, _target)
+        baseDmg *= 1.3 if user.asleep?
+        return baseDmg
+    end
+end
+
+#===============================================================================
+# Deals 50% more damage if the target is asleep. (Possession)
+#===============================================================================
+class PokeBattle_Move_50DamageIfTargetAsleep < PokeBattle_Move
+    def pbBaseDamage(baseDmg, _user, target)
+        baseDmg *= 1.5 if target.asleep?
+        return baseDmg
+    end
+end
+
+#===============================================================================
 # Power is doubled if the target is paralyzed. Cures the target of numb.
 # (Smelling Salts)
 #===============================================================================
@@ -176,7 +198,7 @@ class PokeBattle_Move_Drainage < PokeBattle_Move
 end
 
 #===============================================================================
-# Power is doubled if the target is asleep. Wakes the target up. (Wake-Up Slap)
+# Power is doubled if the target is asleep. Wakes the target up.
 #===============================================================================
 class PokeBattle_Move_WakeUpSlap < PokeBattle_Move
     def pbBaseDamage(baseDmg, _user, target)
@@ -263,7 +285,7 @@ end
 
 #===============================================================================
 # Power is doubled if the user has lost HP due to the target's move this round.
-# (Avalanche, Revenge)
+# (Hateful Haymaker)
 #===============================================================================
 class PokeBattle_Move_DoubleDamageTargetHitUser < PokeBattle_Move
     def pbBaseDamage(baseDmg, user, target)
@@ -312,7 +334,7 @@ class PokeBattle_Move_DoubleDamageTargetLostHP < PokeBattle_Move
 end
 
 #===============================================================================
-# Power is doubled if a user's ally has already used this move this round. (Round)
+# Power is doubled if a user's ally has already used this move this round. (Round, Heart Rhythm)
 # If an ally is about to use the same move, make it go next, ignoring priority.
 #===============================================================================
 class PokeBattle_Move_Round < PokeBattle_Move
@@ -483,7 +505,7 @@ class PokeBattle_Move_DoubleDamageBerryConsumed < PokeBattle_Move
 end
 
 #===============================================================================
-# Deals double damage if the user has consumed a gem at some point. (Glimmer Pulse)
+# Deals double damage if the user has consumed a gem at some point. (Shattered Light)
 #===============================================================================
 class PokeBattle_Move_DoubleDamageGemConsumed < PokeBattle_Move
     def pbBaseDamage(baseDmg, user, target)
@@ -513,7 +535,7 @@ class PokeBattle_Move_DoubleDamageGravity < PokeBattle_Move
 end
 
 #===============================================================================
-# Increases the move's power by 25% if the target moved this round. (Rootwrack)
+# Increases the move's power by 25% if the target moved this round.
 #===============================================================================
 class PokeBattle_Move_PowerBoostTargetMoved25Percent < PokeBattle_Move
     def pbBaseDamage(baseDmg, _user, target)
@@ -543,7 +565,7 @@ class PokeBattle_Move_CritsAgainstRaisedStats < PokeBattle_Move
 end
 
 #===============================================================================
-# Power doubles if has the Defense Curl effect, which it consumes. (Rough & Tumble)
+# Power doubles if has the Defense Curl effect, which it consumes.
 #===============================================================================
 class PokeBattle_Move_RoughAndTumble < PokeBattle_Move
     def pbBaseDamage(baseDmg, user, _target)
@@ -593,6 +615,7 @@ class PokeBattle_Move_DoubleDamageMoneyTargetStatused < PokeBattle_Move
         user.generateMoney(money)
     end
 end
+
 #===============================================================================
 # Power is increased by 30% if the move is super-effective or hyper-effective. (Atmospheric Burst)
 #===============================================================================
@@ -604,5 +627,47 @@ class PokeBattle_Move_DamageBoost30PercentSuperOrHyperEffective < PokeBattle_Mov
 
     def shouldHighlight?(user, target)
         return pbCalcTypeMod(:FLYING, user, target, true) == Effectiveness::SUPER_EFFECTIVE
+    end
+end
+
+#===============================================================================
+# Always critical vs targets with modified stats. (Cleansing Flames)
+# Resets those stats.
+#===============================================================================
+class PokeBattle_Move_CritsAgainstModifiedStatsResetsStats < PokeBattle_Move
+    def pbCriticalOverride(_user, target)
+        return 1 if target.hasAlteredStatSteps?
+        return 0
+    end
+
+    def pbEffectAgainstTarget(user, target)
+        return if target.damageState.hpLost <= 0
+        battle.pbDisplay(_INTL("{1}'s stat changes were cleansed by fire!", target.pbThis))
+        target.pbResetStatSteps
+    end
+
+    def shouldHighlight?(_user, target)
+        return target.hasAlteredStatSteps?
+    end
+end
+
+#===============================================================================
+# Always critical vs targets with unmodified stats. (Advancing Voltage)
+# Raises all of the target's stats by one step.
+#===============================================================================
+class PokeBattle_Move_CritsAgainstUnmodifiedStatsRaiseTargetMainStatsOne < PokeBattle_Move
+    def pbCriticalOverride(_user, target)
+        return 1 unless target.hasAlteredStatSteps?
+        return 0
+    end
+
+    def pbEffectAgainstTarget(user, target)
+        return if target.damageState.hpLost <= 0
+        battle.pbDisplay(_INTL("{1}'s stats are advanced by an energy surge!", target.pbThis))
+        target.pbRaiseMultipleStatSteps(ALL_STATS_1, user, move: self)
+    end
+
+    def shouldHighlight?(_user, target)
+        return !target.hasAlteredStatSteps?
     end
 end

@@ -221,10 +221,10 @@ end
 def circuitIntegrationChamberMaze(barrierEventIDs)
     solved, state = circuitPuzzle(:IC_ELECTRIC_MAZE)
 
-    pbSetSelfSwitch(barrierEventIDs[0],'A',[0,1,2,3,4,7].include?(state))
-    pbSetSelfSwitch(barrierEventIDs[1],'A',[0,1,2,3,4,5,6].include?(state))
-    pbSetSelfSwitch(barrierEventIDs[2],'A',![7,8].include?(state))
-    pbSetSelfSwitch(barrierEventIDs[3],'A',![7,8].include?(state))
+    pbSetSelfSwitch(barrierEventIDs[0],'A',[5,6,8].include?(state))
+    pbSetSelfSwitch(barrierEventIDs[1],'A',[7].include?(state))
+    pbSetSelfSwitch(barrierEventIDs[2],'A',[7,8].include?(state))
+    pbSetSelfSwitch(barrierEventIDs[3],'A',[7,8].include?(state))
 
     electricFenceActivates
 end

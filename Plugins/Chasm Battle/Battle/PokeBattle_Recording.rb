@@ -73,6 +73,10 @@ module PokeBattle_BattleRecorder
 		recordChoices
 	end
 
+	def recordSkippedTurn
+		@recorded_choices.push([])
+	end
+
 	def pbStartBattle
 		@player_info                  = Marshal.dump(@player)
 		@opponent_info                = Marshal.dump(@opponent)
@@ -88,7 +92,7 @@ module PokeBattle_BattleRecorder
 
 	def pbEndOfBattle
 		saveBattle("Last battle") if @save_battle
-		save_random_log = true
+		save_random_log = false
 		saveRandomLog(@save_battle ? "random_record.txt" : "random_replay.txt") if save_random_log
 		super
 	end
@@ -104,7 +108,9 @@ module PokeBattle_BattleRecorder
 	end
 
 	def registerRecordedChoice(index)
-		@recorded_choices[@turnCount][index][@commandPhasesThisRound-1].push(@recorded_choice) unless @recorded_choices[@turnCount][index].length < @commandPhasesThisRound
+    	return if @recorded_choices[@turnCount][index].length < @commandPhasesThisRound
+    	@recorded_choices[@turnCount][index][@commandPhasesThisRound-1] ||= []
+    	@recorded_choices[@turnCount][index][@commandPhasesThisRound-1].push(@recorded_choice)
 	end
 
 	def registerRules
@@ -317,6 +323,7 @@ class PokeBattle_Battle
 	def registerRecordedChoice(index); end
 	def registerReplayedChoice(index); end
 	def registerRules; end
+	def recordSkippedTurn; end
 end
 
 class PokeBattle_TectonicRecordedBattle < PokeBattle_Battle

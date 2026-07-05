@@ -23,6 +23,12 @@ BattleHandlers::MoveImmunityTargetAbility.add(:FLYTRAP,
   }
 )
 
+BattleHandlers::MoveImmunityTargetAbility.add(:DEBUGGER,
+  proc { |ability, user, target, move, type, battle, showMessages, aiCheck|
+      next pbBattleMoveImmunityStatAbility(ability, user, target, move, type, :BUG, :SPEED, 1, battle, showMessages, aiCheck)
+  }
+)
+
 BattleHandlers::MoveImmunityTargetAbility.add(:COLDRECEPTION,
   proc { |ability, user, target, move, type, battle, showMessages, aiCheck|
       next pbBattleMoveImmunityStatAbility(ability, user, target, move, type, :ICE, ATTACKING_STATS_1, nil, battle, showMessages, aiCheck)
@@ -92,6 +98,12 @@ BattleHandlers::MoveImmunityTargetAbility.add(:SWORDSMITHING,
 BattleHandlers::MoveImmunityTargetAbility.add(:SHIELDSMITHING,
   proc { |ability, user, target, move, type, battle, showMessages, aiCheck|
       next pbBattleMoveImmunityStatAbility(ability, user, target, move, type, :STEEL, DEFENDING_STATS_1, nil, battle, showMessages, aiCheck)
+  }
+)
+
+BattleHandlers::MoveImmunityTargetAbility.add(:COLDFUSION,
+  proc { |ability, user, target, move, type, battle, showMessages, aiCheck|
+      next pbBattleMoveImmunityStatAbility(ability, user, target, move, type, %i[FIRE ELECTRIC], ATTACKING_STATS_2, nil, battle, showMessages, aiCheck)
   }
 )
 

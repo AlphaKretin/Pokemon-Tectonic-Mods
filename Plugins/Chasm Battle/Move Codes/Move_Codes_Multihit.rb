@@ -28,6 +28,23 @@ class PokeBattle_Move_HitThreeTimesAlwaysCriticalHit < PokeBattle_Move_AlwaysCri
 end
 
 #===============================================================================
+# Hits 3 times, reduces Defense by 1, and disables itself. (Featherlock Volley)
+#===============================================================================
+class PokeBattle_Move_HitThreeTimesLowerTargetDef1DisablesSelf < PokeBattle_TargetStatDownMove
+    def initialize(battle, move)
+        super
+        @statDown = [:DEFENSE, 1]
+    end
+    
+    def multiHitMove?; return true; end
+    def pbNumHits(_user, _targets, _checkingForAI = false); return 3; end
+    
+    def pbEffectAfterAllHits(user, _target)
+        user.applyEffect(:Disable, 5)
+    end
+end
+
+#===============================================================================
 # Hits three times as Beedrill and five times as Wornet. (Manyneedle)
 #===============================================================================
 class PokeBattle_Move_HitsThreeTimesAsBeedrillFiveTimesAsWornet < PokeBattle_Move
@@ -144,8 +161,13 @@ class PokeBattle_Move_HitTwoToFiveTimesTwiceThenExhaust < PokeBattle_Move_HitTwo
     def exhaustingMove?
         return true
     end
+
+    def consumesItem?(user)
+        user.hasActiveItemAI?(:ENERGYHERB)
+    end
     
     def pbEffectAfterAllHits(user, target)
+        return if user.fainted?
         unless user.effectActive?(:SprayAndPray)
             @battle.pbDisplay(_INTL("{1} sends another volley!", user.pbThis))
             @battle.forceUseMove(user, :SPRAYANDPRAY, target.index, moveUsageEffect: :SprayAndPray)
@@ -196,7 +218,7 @@ end
 # Hits in 2 volleys. The second volley targets the original target's ally if it
 # has one (that can be targeted), or the original target if not. A battler
 # cannot be targeted if it is is immune to or protected from this move somehow,
-# or if this move will miss it. (Dragon Darts)
+# or if this move will miss it.
 # NOTE: This move sometimes shows a different failure message compared to the
 #       official games. This is because of the order in which failure checks are
 #       done (all checks for each target in turn, versus all targets for each
@@ -251,6 +273,7 @@ class PokeBattle_Move_HitTwoTimesTargetThenTargetAlly < PokeBattle_Move_HitTwoTi
             end
         end
         return [valid_targets[1]] if indexThisHit == 1 && valid_targets[1]
+        return [] if valid_targets.empty?
         return [valid_targets[0]]
     end
 end
@@ -284,6 +307,7 @@ end
 
 #===============================================================================
 # Works just like HitTwoTimesTargetThenTargetAlly, but hits four times.
+# (Dreepy Barrage)
 #===============================================================================
 class PokeBattle_Move_HitFourTimesTargetThenTargetAlly < PokeBattle_Move_HitTwoTimesTargetThenTargetAlly
     def pbNumHits(_user, _targets, checkingForAI = false)

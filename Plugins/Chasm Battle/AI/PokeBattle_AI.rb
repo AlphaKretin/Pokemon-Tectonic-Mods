@@ -1,4 +1,4 @@
-KillInfo = Struct.new(:user, :move, :speed, :priority, :score)
+KillInfo = Struct.new(:user, :move, :speed, :priority, :score, :consumesItem)
 
 class PokeBattle_AI
     attr_reader :precalculatedChoices
@@ -10,6 +10,7 @@ class PokeBattle_AI
         @battle = battle
         @precalculatedChoices = {}
         @precalculatedDefensiveMatchup = {}
+        @typeModCache = {}
         @justswitched = [false,false,false,false]
         @battleArena = false
         @battlePalace = false
@@ -71,6 +72,7 @@ class PokeBattle_AI
     def resetPrecalculations
         @precalculatedChoices.clear
         @precalculatedDefensiveMatchup.clear
+        @typeModCache.clear
     end
 
     def pbPredictChoiceByPlayer(idxBattler)

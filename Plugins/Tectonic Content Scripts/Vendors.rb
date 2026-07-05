@@ -16,13 +16,18 @@ def martStock
     return stock
 end
 
+def setPokeMartPrices
+	setPrice(:SITRUSBERRY,2000)
+	setPrice(:EXPCANDYXS,100)
+end
+
 def basicPokeMart
-    setPrice(:SITRUSBERRY,2000)
+    setPokeMartPrices
     pbPokemonMart(martStock)
 end
 
 def rangerMart
-    setPrice(:SITRUSBERRY,2000)
+    setPokeMartPrices
     if vipCardActive?
         message = _INTL("You a big shot, huh? Well, we're here to supply you.")
     else
@@ -126,7 +131,12 @@ def reviveFossil(fossil)
 	end
 
 	if isFantasyFossil?(fossil)
-		pbMessage(_INTL("I... don't think I understand this fossil. Maybe try asking my assistant for help."))
+		pbMessage(_INTL("A new discovery, you say? Let me take a look."))
+		pbMessage(_INTL("Well, hmm... I have some bad news."))
+		pbMessage(_INTL("There's not a lot of genetic data left in this fossil... "))
+		pbMessage(_INTL("It would not be ethical to revive it."))
+		pbMessage(_INTL("As an aside, my grad student across the table isn't so fastidious..."))
+		pbMessage(_INTL("Please make sure he doesn't get his hands on any sub-par specimens like this one."))
 		return
 	end
 
@@ -166,7 +176,10 @@ def reviveFossil(fossil)
 	pbAddPokemon(species,15)
 end
 
-def reviveFantasyFossil(fossil)
+M_KABUTO_REVIVED_GLOBAL = 260
+M_OMANYTE_REVIVED_GLOBAL = 261
+
+def reviveFantasyFossil(fossil, free=false)
 	if isMixFossil?(fossil)
 		pbMessage(_INTL("What!? You want me to make a combo fossil? Not a chance."))
 		pbMessage(_INTL("Maybe someone else is interested in creative torture, but I sure am not."))
@@ -191,21 +204,43 @@ def reviveFantasyFossil(fossil)
 		return
 	end
 	item_data = GameData::Item.get(fossil)
+	if free
+		pbMessage(_INTL("\\PN hands over the {1}.",item_data.name))
+	else
+		pbMessage(_INTL("\\PN hands over the {1} and $2000.",item_data.name))
+	end
+
+	firstTimeOmanyte = fossil == :ELDRITCHFOSSIL && !getGlobalSwitch(M_OMANYTE_REVIVED_GLOBAL)
+	firstTimeKabuto = fossil == :ALIENFOSSIL && !getGlobalSwitch(M_KABUTO_REVIVED_GLOBAL)
+	newFossil = firstTimeOmanyte || firstTimeKabuto
 	
-	pbMessage(_INTL("\\PN hands over the {1} and $3000.",item_data.name))
-	
-	pbMessage(_INTL("Is that...? Very intriguing."))
-	pbMessage(_INTL("Feels... familiar. Something I played long ago..."))
-	pbMessage(_INTL("I'll see what I can do."))
+	if newFossil
+		pbMessage(_INTL("Is that...? Very intriguing. There's not a lot to work with here, but..."))
+		pbMessage(_INTL("It feels... familiar. This reminds me of something I played a long time ago..."))
+		pbMessage(_INTL("If I just add this here... maybe I can cobble something together..."))
+	else
+		pbMessage(_INTL("Oh, another one of these? Asset re-use. How boring."))
+		pbMessage(_INTL("I suppose it'll still be fun..."))
+	end
 	
 	blackFadeOutIn(30) {
-		$Trainer.money = $Trainer.money - 3000
+		$Trainer.money = $Trainer.money - 2000 unless free
 		$PokemonBag.pbDeleteItem(fossil)
 	}
 	
 	pbMessage(_INTL("Yes! It's aliiiiiiive! Muahahahahaha!"))
 
+	setGlobalSwitch(M_OMANYTE_REVIVED_GLOBAL) if firstTimeOmanyte
+	setGlobalSwitch(M_KABUTO_REVIVED_GLOBAL) if firstTimeKabuto
+
 	pbAddPokemon(species,15)
+
+	if newFossil
+		pbMessage(_INTL("Not that it's any of your concern, but I took a DNA sample from the revived creature."))
+		pbMessage(_INTL("My wonderful creation should not be alone in this world. I'll have to find a way to make more of them..."))
+		activateQuest(:QUEST_FANTASY_FOSSIL) # should do nothing if quest already active
+		advanceQuestToStage(:QUEST_FANTASY_FOSSIL, 2)
+	end
 
 	pbMessage(_INTL("Okay, now go away. I won't suffer any more EXP waste."))
 end
@@ -394,6 +429,7 @@ def shinifyPokemonVendor
 	blackFadeOutIn(30) {
 		$PokemonBag.pbDeleteItem(:GLEAMPOWDER)
 		pkmn.shiny = true
+		refreshFollow(false)
 	}
 	pbMessage(_INTL("Now, bask in the beautiful glow of your shiny {1}!", pkmn.speciesName))
 	pbMessage(_INTL("No need to thank me, its beauty is reward enough."))
@@ -494,7 +530,7 @@ def fossilSell()
 	]
 	pbPokemonMart(
 		fossilStock,
-		_INTL("Do you like anything you see?"),
+		_INTL("Maybe you'll be the one to bring them back?"),
 		!CAN_SELL_IN_VENDORS
 	)
 end
@@ -506,11 +542,13 @@ def eastEndExclusives
 		GRASSTOKEN WATERTOKEN FIRETOKEN
 		DIAMONDTIARA
 		RUSTEDSHIELD RUSTEDSWORD
+		GRISEOUSCORE
 	]
 
 	setPrice(:RUSTEDSWORD,20_000)
 	setPrice(:RUSTEDSHIELD,20_000)
 	setPrice(:DYNAMITESTICK,5_000)
+	setPrice(:GRISEOUSCORE,20_000)
 	
 	pbPokemonMart(
 		exclusiveItemsStock,
@@ -558,12 +596,12 @@ def tmShop
 		TMTRAMPLE TMEARTHPOWER
 
 		TMSTRAFE TMCOLDFRONT
-		TMPSYCHOSCISSION TMPSYCHIC
+		TMPSYCHOSCISSION TMNEURALPULSE
 		TMXSCISSOR TMBUGBUZZ
 
 		TMADAMANTINEPRESS TMPOWERGEM
 		TMWAILINGBLOW TMSHADOWBALL
-		TMREND TMDRAGONPULSE
+		TMDRAGONHAMMER TMDRAGONPULSE
 
 		TMCRUNCH TMDARKALLURE
 		TMMETEORMASH TMFLASHCANNON
@@ -572,7 +610,7 @@ def tmShop
 
 	pbPokemonMart(
 		tmsStock,
-		_INTL("One-Stop Tech Shop, for all your electronic need."),
+		_INTL("One-Stop Tech Shop, for all your electronic needs."),
 		!CAN_SELL_IN_VENDORS
 	)
 end
@@ -686,6 +724,7 @@ end
 def heldItemShop
 	stock = %i[
 		POWERLOCK ENERGYLOCK
+		FLAMEORB FROSTORB POISONORB
 		UTILITYUMBRELLA 
 		BLACKSLUDGE
 		GRIPCLAW
@@ -728,6 +767,7 @@ def advancedHeldItemsShop
 		PINWHEEL INSOLES
 		WHITENINGPASTE FLASHBULB
 		ROCKYHELMET HIVISJACKET
+		AMULETCOIN
 	]
 
 	pbPokemonMart(
@@ -848,7 +888,7 @@ end
 
 def berryVendor
 	setPrice(:CADOBERRY,1000)
-	setPrice(:SITRUSBERRY,1000)
+	setPrice(:SITRUSBERRY,2000)
 	setPrice(:LUMBERRY,1000)
 	setPrice(:LEPPABERRY,500)
 	

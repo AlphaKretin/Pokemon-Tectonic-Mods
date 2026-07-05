@@ -365,6 +365,14 @@ BattleHandlers::TargetAbilityOnHit.add(:COUNTERFLOW,
   }
 )
 
+BattleHandlers::TargetAbilityOnHit.add(:INNARDSPUNCH,
+  proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
+        next if target.fainted?
+        next -30 * aiNumHits if aiCheck
+        battle.forceUseMove(target, :MEGAPUNCH, user.index, ability: ability)
+  }
+)
+
 BattleHandlers::TargetAbilityOnHit.add(:WIBBLEWOBBLE,
   proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
         next if target.fainted?
@@ -375,6 +383,7 @@ BattleHandlers::TargetAbilityOnHit.add(:WIBBLEWOBBLE,
 
 BattleHandlers::TargetAbilityOnHit.add(:BOUNCEBACK,
   proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
+        next if user.boss?
         next unless user.hp > target.hp
         next if target.fainted?
         next -20 if aiCheck
@@ -382,19 +391,11 @@ BattleHandlers::TargetAbilityOnHit.add(:BOUNCEBACK,
   }
 )
 
-BattleHandlers::TargetAbilityOnHit.add(:FRIGIDREFLECTION,
-    proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
-        next unless move.specialMove?
-        next if target.fainted?
-        next -60 if aiCheck
-        battle.forceUseMove(target, move.id, user.index, ability: ability)
-    }
-)
 
 BattleHandlers::TargetAbilityOnHit.add(:HUGGABLE,
     proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
         next if target.fainted?
-        next unless move.baseDamage >= 95
+        next unless target.damageState.finalBaseDamage >= 95
         if aiCheck
             score = -5
             score -= getNumbEffectScore(target, user)
@@ -713,7 +714,7 @@ BattleHandlers::TargetAbilityOnHit.add(:CURSEDTAIL,
         next if user.effectActive?(:Curse)
         if aiCheck
             if user.effectActive?(:CurseWarned) || aiNumHits > 1
-                next -30
+                next -(getCurseEffectScore(target, user) * 0.25)
             else
                 next -10
             end
@@ -905,6 +906,7 @@ BattleHandlers::TargetAbilityOnHit.add(:INNARDSOUT,
   
 BattleHandlers::TargetAbilityOnHit.add(:MUMMY,
     proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
+        next if user.dummy
         next if user.fainted?
         next if user.immutableAbility?
         next if user.hasAbility?(ability)
@@ -915,18 +917,19 @@ BattleHandlers::TargetAbilityOnHit.add(:MUMMY,
   
 BattleHandlers::TargetAbilityOnHit.add(:INFECTED,
     proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
+        next if user.dummy
         next if user.fainted?
         next if user.immutableAbility?
         next if user.hasAbility?(ability)
         next unless user.canChangeType?
         next -15 if aiCheck
         user.replaceAbility(ability, user.opposes?(target), target)
-        user.applyEffect(:Type3,:GRASS) unless user.pbHasType?(:GRASS)
     }
 )
 
 BattleHandlers::TargetAbilityOnHit.add(:WANDERINGSPIRIT,
     proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
+        next if user.dummy
         next if user.fainted?
         next if user.immutableAbility?
         next if user.hasAbility?(ability)
@@ -1060,6 +1063,7 @@ BattleHandlers::TargetAbilityOnHit.add(:COLORCOLLECTOR,
 
 BattleHandlers::TargetAbilityOnHit.add(:TANGLINGVINES,
     proc { |ability, user, target, move, battle, aiCheck, aiNumHits|
+        next if user.dummy
         next if target.fainted?
         next -10 * aiNumHits if aiCheck
         target.showMyAbilitySplash(ability)

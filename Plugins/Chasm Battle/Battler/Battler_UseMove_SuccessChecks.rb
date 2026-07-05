@@ -186,7 +186,7 @@ class PokeBattle_Battler
             return false
         end
         # Rampage Locked
-        if effectActive?(:RampageLocked) && !move.rampagingMove?
+        if effectActive?(:RampageLocked) && effectActive?(:Rampaging) && !move.rampagingMove?
             msg = _INTL("{1} can't use this attack while rampaging!", pbThis)
             if showMessages
                 commandPhase ? @battle.pbDisplayPaused(msg) : @battle.pbDisplay(msg)
@@ -201,6 +201,16 @@ class PokeBattle_Battler
         return true if effectActive?(:Torment)
         return true if neurotoxined?
         return false
+    end
+
+    def tyrannicalPreventsFlinch?
+        return false unless hasTribeBonus?(:TYRANNICAL)
+        return false if pbOwnSide.effectActive?(:TyrannicalImmunity)
+        @battle.pbShowTribeSplash(self, :TYRANNICAL)
+        @battle.pbDisplay(_INTL("{1} refuses to flinch!", pbThis))
+        @battle.pbHideTribeSplash(self)
+        pbOwnSide.applyEffect(:TyrannicalImmunity)
+        return true
     end
 
     #=============================================================================
@@ -326,11 +336,7 @@ class PokeBattle_Battler
                 if effectActive?(:FlinchImmunity)
                     @battle.pbDisplay(_INTL("{1} would have flinched, but it's immune now!", pbThis))
                     disableEffect(:Flinch)
-                elsif hasTribeBonus?(:TYRANNICAL) && !pbOwnSide.effectActive?(:TyrannicalImmunity)
-                    @battle.pbShowTribeSplash(self,:TYRANNICAL)
-                    @battle.pbDisplay(_INTL("{1} refuses to flinch!", pbThis))
-                    @battle.pbHideTribeSplash(self)
-                    pbOwnSide.applyEffect(:TyrannicalImmunity)
+                elsif tyrannicalPreventsFlinch?
                 elsif hasActiveItem?(:COURAGEBADGE)
                     @battle.pbDisplay(_INTL("{1} would have flinched, but it holds a Courage Badge!", pbThis))
                     aiLearnsItem(:COURAGEBADGE)
@@ -413,8 +419,7 @@ target.pbThis(true)))
         holdersToCheck = [target]
         holdersToCheck.push(target.pbOwnSide) if target.index != user.index
         holdersToCheck.each do |effectHolder|
-            effectHolder.eachEffect(true) do |effect, _value, data|
-                next unless data.is_protection?
+            effectHolder.eachActiveProtectionEffect do |effect, _value, data|
                 if data.protection_info&.has_key?(:does_negate_proc) && !data.protection_info[:does_negate_proc].call(
                     user, target, move, @battle)
                     next

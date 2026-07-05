@@ -2,7 +2,7 @@ def payMoney(cost, showMessage = true)
 	raise _INTL("A money cost can't be negative!") if cost < 0
 	if $Trainer.money >= cost
 		$Trainer.money = $Trainer.money - cost
-		pbMessage(_INTL("You hand over ${1}.",cost)) if showMessage
+		pbMessage(_INTL("\\PN hands over the ${1}.",cost)) if showMessage
 		return true
 	else
 		return false

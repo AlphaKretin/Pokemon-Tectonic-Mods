@@ -74,5 +74,9 @@ def dialogueOnUsingPokeXRay(event, trainer)
     if trainer.trainer_type == :LEADER_Victoire
         pbMessage(_INTL("Victoire notices you glancing at the Poké X-Ray."))
         pbMessage(_INTL("She smiles slightly and gives you an inscrutable look."))
+    elsif trainer.trainer_type == :VANYAMOM
+        setSpeakerTrainer(:VANYAMOM,"Vidya")
+        pbMessage(_INTL("Using my own technology against us, I see."))
+        pbMessage(_INTL("I suppose I should be flattered."))
     end
 end

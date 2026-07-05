@@ -9,10 +9,21 @@ BattleHandlers::DamageCalcUserAbility.add(:ARCTICARIETTE,
   }
 )
 
+BattleHandlers::DamageCalcUserAbility.add(:GALVANIZE,
+  proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
+      if aiCheck
+          mults[:base_damage_multiplier] *= 1.3 if type == :ELECTRIC
+      elsif move.powerBoost
+          mults[:base_damage_multiplier] *= 1.3
+          user.aiLearnsAbility(ability) unless aiCheck
+      end
+  }
+)
+
 BattleHandlers::DamageCalcUserAbility.add(:NORMALIZE,
   proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
       if aiCheck
-          mults[:base_damage_multiplier] *= 1.5 if type != :NORMAL
+          mults[:base_damage_multiplier] *= 1.5 if type == :NORMAL
       elsif move.powerBoost
           mults[:base_damage_multiplier] *= 1.5
           user.aiLearnsAbility(ability) unless aiCheck
@@ -92,6 +103,15 @@ BattleHandlers::DamageCalcUserAbility.add(:FICKLEUNION,
 BattleHandlers::DamageCalcUserAbility.add(:ULTRABUSTER,
   proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
     if move.pulseMove? || move.punchingMove?
+      mults[:base_damage_multiplier] *= 1.5
+      user.aiLearnsAbility(ability) unless aiCheck
+    end
+  }
+)
+
+BattleHandlers::DamageCalcUserAbility.add(:FADINGFURY,
+  proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
+    if move.lightMove? || move.kickingMove?
       mults[:base_damage_multiplier] *= 1.5
       user.aiLearnsAbility(ability) unless aiCheck
     end
@@ -427,15 +447,6 @@ BattleHandlers::DamageCalcUserAbility.add(:STEELWORKER,
 
 BattleHandlers::DamageCalcUserAbility.copy(:STEELWORKER, :STEELYSHELL, :PULVERIZE)
 
-BattleHandlers::DamageCalcUserAbility.add(:STRATAGEM,
-  proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
-    if type == :ROCK
-      mults[:base_damage_multiplier] *= 1.5
-      user.aiLearnsAbility(ability) unless aiCheck
-    end
-  }
-)
-
 BattleHandlers::DamageCalcUserAbility.add(:SURFSUP,
   proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
     if type == :WATER
@@ -735,33 +746,6 @@ BattleHandlers::DamageCalcUserAbility.add(:TIMEINTERLOPER,
   proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
       mults[:attack_multiplier] *= 3.0 / 4.0
       user.aiLearnsAbility(ability) unless aiCheck
-  }
-)
-
-BattleHandlers::DamageCalcUserAbility.add(:MARINEMENACE,
-  proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
-    if move.function == "TwoTurnAttackInvulnerableUnderwater" # Dive, # Depth Charge
-      mults[:base_damage_multiplier] *= 1.5
-      user.aiLearnsAbility(ability) unless aiCheck
-    end
-  }
-)
-
-BattleHandlers::DamageCalcUserAbility.add(:EXCAVATOR,
-  proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
-    if move.function == "TwoTurnAttackInvulnerableUnderground" # Dig, Undermine
-      mults[:base_damage_multiplier] *= 1.5
-      user.aiLearnsAbility(ability) unless aiCheck
-    end
-  }
-)
-
-BattleHandlers::DamageCalcUserAbility.add(:STEEPFLYING,
-  proc { |ability, user, target, move, mults, _baseDmg, type, aiCheck|
-    if move.function == "TwoTurnAttackInvulnerableInSky" # Fly, Divebomb
-      mults[:base_damage_multiplier] *= 1.5
-      user.aiLearnsAbility(ability) unless aiCheck
-    end
   }
 )
 

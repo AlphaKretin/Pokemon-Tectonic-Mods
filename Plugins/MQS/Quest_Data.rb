@@ -33,7 +33,7 @@ module QuestModule
   QUEST_SKYLER = {
     :Name => _INTL("Dear Iconoclast"),
     :Stage1 => _INTL("Find him in Velenz."),
-    :Stage2 => _INTL("Find him north east."),
+    :Stage2 => _INTL("Find him south east."),
     :Stage3 => _INTL("Find him after your 7th badge."),
     :Stage4 => _INTL("Find him after the tournament."),
     :Location1 => _INTL("Velenz"),
@@ -96,6 +96,7 @@ module QuestModule
     :Location1 => _INTL("Repora Forest"),
     :Location2 => _INTL("Novo Apartments"),
     :QuestDescription => _INTL("The kid in Novo Apartments is asking you to find his Growlithe, which is lost in Repora Forest."),
+    :RewardString => _INTL("Pokémon Lure"),
   }
 
   QUEST_HIDE_AND_SEEK = {
@@ -208,6 +209,18 @@ module QuestModule
     :Location1 => _INTL("East-Peaks Gatehouse"),
     :QuestDescription => _INTL("An elderly lady notices your strength and status, and figures you may have a legendary Pokémon. She only wishes to see it and admire it. How about humoring her request? I'm sure there is something powerful in this region that you could find."),
   }
+
+  QUEST_FANTASY_FOSSIL = {
+    :Name => _INTL("Speculative Biology"),
+    :QuestGiver => _INTL("Fossil Expert"),
+    :Stage1 => _INTL("Take the fossil to Novo College."),
+    :Stage2 => _INTL("Find another specimen."),
+    :Location1 => _INTL("Novo College"),
+    :Location2 => _INTL("Novo College"),
+    :QuestDescription1 => _INTL("A scientist has uncovered a strange fossil underneath Velenz. Take it back to Novo College for analysis."),
+    :QuestDescription2 => _INTL("A questionable student at Novo College has turned your strange fossil into something out of a video game. If you find a different fossil for him, what's the worst that could happen?"),
+  }
+
 
   # Gym Leader Avatars
 
@@ -416,9 +429,12 @@ module QuestModule
   QUEST_LEGEND_MARSHADOW = {
     :Name => _INTL("Always In Character"),
     :QuestGiver => _INTL("The LARPers"),
-    :Stage1 => _INTL("See if you can find them again."),
-    :Location1 => _INTL("Makya"),
-    :QuestDescription => _INTL("Quite an eclectic group you've found. You've claimed their hoard, but this surely isn't the last time you'll find yourself encountering them."),
+    :Stage1 => _INTL("Investigate the voices."),
+    :Stage2 => _INTL("See if you can find them again."),
+    :Location1 => _INTL("Carnation Stockpile"),
+    :Location2 => _INTL("Makya"),
+    :QuestDescription1 => _INTL("You heard some strange voices echoing deep in a cave. Who will you encounter, if you decide to investigate where they're coming from?"),
+    :QuestDescription2 => _INTL("Quite an eclectic group you've found. You've claimed their hoard, but this surely isn't the last time you'll find yourself encountering them."),
   }
 
   QUEST_LEGEND_NULL = {
@@ -588,6 +604,27 @@ module QuestModule
     :Location4 => _INTL("Prizca West"),
     :QuestDescription => _INTL("This scientist keeps crossing your way. He keeps giving you interesting stuff, may as well continue finding him."),
   }
+
+  QUEST_VANYA_TAO_TRIO = {
+    :Name => _INTL("Cold Reality"),
+    :QuestGiver => _INTL("Vanya"),
+    :Stage1 => _INTL("Meet Vanya for a battle."),
+    :Stage2 => _INTL("Meet Vanya for a battle."),
+    :Stage3 => _INTL("Meet Vanya for a battle."),
+    :Stage4 => _INTL("Meet Vanya for a battle."),
+    :Stage5 => _INTL("Investigate Vanya's mind."),
+    :Stage6 => _INTL("Find the dragon stones."),
+    :Stage7 => _INTL("Find and rescue Vanya."),
+    :Location1 => _INTL("Bluepoint Beach"),
+    :Location2 => _INTL("Repora Forest"),
+    :Location3 => _INTL("Split Peaks"),
+    :Location4 => _INTL("Frostflow Farms"),
+    :Location5 => _INTL("Frostflow Farms...?"),
+    :Location6 => _INTL("Frostflow Farms...?"),
+    :Location7 => _INTL("Frostflow Farms...?"),
+    :QuestDescription => _INTL("Shaken by their loss at the tournament, Vanya needs time to think and a good battling partner: you."),
+  }
+
 
   # Former Champions
 

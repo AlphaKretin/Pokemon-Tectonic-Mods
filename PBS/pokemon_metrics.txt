@@ -2238,30 +2238,6 @@ FrontSprite = -1,19
 ShadowX = 0
 ShadowSize = 2
 #-------------------------------
-[GENESECT,1]
-BackSprite = 0,14
-FrontSprite = 0,19
-ShadowX = 0
-ShadowSize = 2
-#-------------------------------
-[GENESECT,2]
-BackSprite = 0,14
-FrontSprite = 0,19
-ShadowX = 0
-ShadowSize = 2
-#-------------------------------
-[GENESECT,3]
-BackSprite = 0,14
-FrontSprite = 0,19
-ShadowX = 0
-ShadowSize = 2
-#-------------------------------
-[GENESECT,4]
-BackSprite = 0,14
-FrontSprite = 0,19
-ShadowX = 0
-ShadowSize = 2
-#-------------------------------
 [GENGAR]
 BackSprite = 0,17
 FrontSprite = -2,14
@@ -2617,8 +2593,8 @@ ShadowX = 0
 ShadowSize = 2
 #-------------------------------
 [GSLOWPOKE]
-BackSprite = 0,34
-FrontSprite = 0,38
+BackSprite = 0,26
+FrontSprite = 0,29
 ShadowX = 0
 ShadowSize = 2
 #-------------------------------
@@ -3768,6 +3744,12 @@ FrontSprite = 4,8
 ShadowX = 0
 ShadowSize = 2
 #-------------------------------
+[MBLAZIKEN]
+BackSprite = 0,7
+FrontSprite = 3,11
+ShadowX = 0
+ShadowSize = 2
+#-------------------------------
 [MBOLDORE]
 BackSprite = 0,26
 FrontSprite = 3,31
@@ -3789,6 +3771,12 @@ ShadowSize = 2
 [MCASCOON]
 BackSprite = 1,33
 FrontSprite = -1,38
+ShadowX = 0
+ShadowSize = 2
+#-------------------------------
+[MCOMBUSKEN]
+BackSprite = 0,15
+FrontSprite = 2,21
 ShadowX = 0
 ShadowSize = 2
 #-------------------------------
@@ -3927,6 +3915,12 @@ ShadowSize = 3
 [MGOLDEEN]
 BackSprite = 0,20
 FrontSprite = 6,22
+ShadowX = 0
+ShadowSize = 2
+#-------------------------------
+[MGROVYLE]
+BackSprite = 0,23
+FrontSprite = 0,15
 ShadowX = 0
 ShadowSize = 2
 #-------------------------------
@@ -4236,6 +4230,12 @@ FrontSprite = -2,24
 ShadowX = 0
 ShadowSize = 2
 #-------------------------------
+[MSCEPTILE]
+BackSprite = 0,6
+FrontSprite = -11,8
+ShadowX = 0
+ShadowSize = 3
+#-------------------------------
 [MSEAKING]
 BackSprite = 0,15
 FrontSprite = -3,11
@@ -4289,6 +4289,18 @@ BackSprite = 0,16
 FrontSprite = 4,4
 ShadowX = 0
 ShadowSize = 3
+#-------------------------------
+[MTORCHIC]
+BackSprite = 0,27
+FrontSprite = 3,29
+ShadowX = 0
+ShadowSize = 1
+#-------------------------------
+[MTREECKO]
+BackSprite = 0,22
+FrontSprite = -3,16
+ShadowX = 0
+ShadowSize = 1
 #-------------------------------
 [MUDBRAY]
 BackSprite = 0,20
@@ -6452,7 +6464,7 @@ ShadowSize = 2
 #-------------------------------
 [TYRANITAR]
 BackSprite = 0,9
-FrontSprite = 3,10
+FrontSprite = 0,9
 ShadowX = 0
 ShadowSize = 3
 #-------------------------------
@@ -6943,10 +6955,10 @@ ShadowX = 0
 ShadowSize = 2
 #-------------------------------
 [WOLFEROC]
-BackSprite = 0,16
-FrontSprite = -8,23
+BackSprite = 0,18
+FrontSprite = 0,22
 ShadowX = 0
-ShadowSize = 3
+ShadowSize = 2
 #-------------------------------
 [WOOBAT]
 BackSprite = 0,30

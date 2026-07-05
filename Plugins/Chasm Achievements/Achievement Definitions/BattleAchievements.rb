@@ -1,3 +1,4 @@
+# is a stub on engine, definition added here
 def checkBattleStateAchievements(battle)
     checkWeatherRoomScreenAchievement(battle)
     checkManyHazardsAchievement(battle)

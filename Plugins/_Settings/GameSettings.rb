@@ -1,6 +1,6 @@
 module Settings
     # The version of your game. It has to adhere to the MAJOR.MINOR.PATCH format.
-    GAME_VERSION = "3.4.0"
+    GAME_VERSION = "3.4.1"
     DEV_VERSION  = true
 
     # Whether or not to display if the game is up to date with the server version
@@ -35,7 +35,7 @@ module Settings
     #=============================================================================
   
     # The amount of money the player starts the game with.
-    INITIAL_MONEY        = 3000
+    INITIAL_MONEY        = 10_000
     # The maximum amount of money the player can have.
     MAX_MONEY            = 999_999_999
     # The maximum number of Game Corner coins the player can have.
@@ -229,6 +229,7 @@ module Settings
             [0, SPIRIT_ATOLL_VISITED_SWITCH, 0, 0, "Spirit Atoll", false],
             [0, BARREN_ISLAND_VISITED_SWITCH, 0, 0, "Barren Island", false],
             [0, WINDBORN_ISLAND_VISITED_SWITCH, 0, 0, "Windborn Island", false],
+            [0, HOLLOWED_LAYER_VISITED_SWITCH, 0, 0, "Hollowed Layer", false],
         ]
     end
   
@@ -425,6 +426,7 @@ module Settings
             _INTL("Type"),
             _INTL("Tribe"),
             _INTL("Total"),
+            _INTL("Progression"),
         ]
     end
 end

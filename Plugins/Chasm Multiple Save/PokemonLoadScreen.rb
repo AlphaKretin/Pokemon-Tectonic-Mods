@@ -97,6 +97,7 @@ class PokemonLoadScreen
         cmd_website         = -1
         cmd_discord         = -1
         cmd_wiki            = -1
+        cmd_wiki            = -1
         cmd_quit            = -1
         lastModifiedSaveName = FileSave.lastModifiedSaveName
         if FileSave.count > 0
@@ -110,6 +111,7 @@ class PokemonLoadScreen
         commands[cmd_website = commands.length]         = _INTL("Website")
         commands[cmd_discord = commands.length]         = _INTL("Discord")
         commands[cmd_wiki = commands.length]            = _INTL("Wiki")
+        commands[cmd_changelog = commands.length]       = _INTL("3.4 Changelog")
         commands[cmd_quit = commands.length]            = _INTL("Quit Game")
         @scene.pbStartScene(commands, false, nil, 0, 0)
         @scene.pbStartScene2
@@ -139,10 +141,16 @@ class PokemonLoadScreen
                 PokeBattle_BattleRecorder.createDir
                 return
             when cmd_options
+                dark_mode_before = $Options.dark_mode
                 pbFadeOutIn {
                     optionScene = PokemonOption_Scene.new
-					optionScreen = PokemonOptionMenu.new(optionScene)
-					optionScreen.pbStartPokemonMenu
+                    optionScreen = PokemonOptionMenu.new(optionScene)
+                    optionScreen.pbStartPokemonMenu
+                    # Refresh menu to load new background
+                    if $Options.dark_mode != dark_mode_before
+                        @scene.pbCloseScene
+                        @scene.pbStartScene(commands, false, nil, 0, 0)
+                    end
                 }
             when cmd_achievements
                 pbFadeOutIn do
@@ -151,13 +159,15 @@ class PokemonLoadScreen
                     screen.pbStartScreen
                 end
             when cmd_player_survey
-                System.launch("https://forms.gle/PFJLiUVEq6SmnqFT9")
+                System.launch("https://docs.google.com/forms/d/e/1FAIpQLSdKOdjSSdCTIQvRYJKN9QwAIrbZyHA8RZDrWcrpS3e8fxsXKw/viewform?usp=sharing&ouid=104199604940661977082")
             when cmd_website
                 System.launch("https://www.tectonic-game.com/")
             when cmd_discord
                 System.launch("https://discord.gg/J3r7zRaMvP")
             when cmd_wiki
                 System.launch("https://pokemontectonic.wiki.gg/")
+            when cmd_changelog
+                System.launch("https://bit.ly/tectonic_changes_340")
             when cmd_quit
                 pbPlayCloseMenuSE
                 @scene.pbEndScene

@@ -7,7 +7,7 @@ end
 DebugMenuCommands.register("findtextinevents", {
     "parent"      => "analysis",
     "name"        => _INTL("Find Text In Events"),
-    "description" => _INTL("Find events which have a peice of text in the params of their command list."),
+    "description" => _INTL("Find events which have a piece of text in the params of their command list."),
     "effect"      => proc { |sprites, viewport|
         textEntered = pbEnterText("Enter text...", 0, 32)
 
@@ -45,7 +45,7 @@ end
 DebugMenuCommands.register("replacetextinevents", {
     "parent"      => "analysis",
     "name"        => _INTL("Replace Text In Events"),
-    "description" => _INTL("Find events which have a peice of text in the params of their command list, and replace them with a new string."),
+    "description" => _INTL("Find events with a piece of text in their command params, replace with new string."),
     "effect"      => proc { |sprites, viewport|
         textEntered = pbEnterText("Enter text to replace...", 0, 32)
 

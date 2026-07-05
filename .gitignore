@@ -27,6 +27,7 @@ Data/PBSExtensions.rxdata
 Data/GraphicsExtensions.rxdata
 server.log
 .idea/
+OnlinePresets/
 Graphics/Characters/Fusions/*
 Graphics/Pokemon/Fusions/*
 Graphics/CustomBattlers/*

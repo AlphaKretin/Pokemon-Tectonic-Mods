@@ -69,6 +69,7 @@ class MoveDex_Entry_Scene
         end
 
         drawPage
+        pbFadeInAndShow(@sprites) { pbUpdate }
 
         navigateMoveEntry
 

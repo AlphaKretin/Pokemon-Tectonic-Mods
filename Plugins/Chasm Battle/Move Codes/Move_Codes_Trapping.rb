@@ -51,7 +51,7 @@ end
 
 #===============================================================================
 # Target can no longer switch out or flee, as long as the user remains active.
-# (Block, Mean Look, Spirit Shackle, Thousand Waves)
+# (Block, Spirit Shackle, Thousand Waves)
 #===============================================================================
 class PokeBattle_Move_TrapTarget < PokeBattle_Move
     def pbFailsAgainstTarget?(_user, target, show_message)

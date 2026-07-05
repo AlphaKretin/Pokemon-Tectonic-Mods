@@ -98,3 +98,13 @@ BattleHandlers::TargetAbilityAfterMoveUse.add(:ABOVEITALL,
       battle.forceUseMove(target, :PARTINGSHOT, user.index, ability: ability)
   }
 )
+
+BattleHandlers::TargetAbilityAfterMoveUse.add(:FRIGIDREFLECTION,
+    proc { |ability, target, user, move, _switched, battle|
+        next unless move.specialMove?
+        next if target.fainted?
+        next unless user.activatesTargetAbilities?
+        next if target.damageState.calcDamage == 0 || target.damageState.substitute
+        battle.forceUseMove(target, move.id, user.index, ability: ability)
+    }
+)
