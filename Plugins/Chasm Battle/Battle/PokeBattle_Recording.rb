@@ -78,10 +78,23 @@ module PokeBattle_BattleRecorder
 	end
 
 	def pbStartBattle
+		# @party1/@party2 aren't dumped separately: they share the exact same
+		# Pokemon objects as @player[i].party/@opponent[i].party by reference
+		# (pbTrainerBattleCore builds the combined array by pushing each
+		# trainer's own party members, not cloning them), which is how a
+		# Pokemon fainting mid-battle is visible through both the trainer
+		# wrapper (Trainer#alive_pokemon_count, used by e.g. isLastAlive? for
+		# ARCANEFINALE) and the battle's own party array. Marshal.dump(@player)/
+		# Marshal.dump(@opponent) already recursively serializes each
+		# trainer's .party along with it, so a separate dump of @party1/
+		# @party2 would be redundant data -- and worse, loading it back via a
+		# second, independent Marshal.load would produce a second, separate
+		# object graph, breaking that reference sharing (confirmed: replay's
+		# @opponent[i].party stayed frozen at full HP while @party2 -- what
+		# battlers actually mutate -- updated normally, so isLastAlive?'s
+		# alive_pokemon_count read the wrong copy). See PokeBattle_BattleReplayer#initialize.
 		@player_info                  = Marshal.dump(@player)
 		@opponent_info                = Marshal.dump(@opponent)
-		@player_party                 = Marshal.dump(@party1)
-		@opponent_party               = Marshal.dump(@party2)
 		@player_party_starts          = Marshal.dump(@party1starts)
 		@opponent_party_starts        = Marshal.dump(@party2starts)
 		@starting_weather             = @field.weather
@@ -157,10 +170,8 @@ module PokeBattle_BattleRecorder
 			:recorded_switches => @recorded_switches,
 			:random => @random,
 			:player_info => @player_info,
-			:player_party => @player_party,
 			:player_party_starts => @player_party_starts,
 			:opponent_info => @opponent_info,
-			:opponent_party => @opponent_party,
 			:opponent_party_starts => @opponent_party_starts,
 			:starting_weather => @starting_weather,
 			:starting_weather_duration => @starting_weather_duration,
@@ -208,9 +219,18 @@ module PokeBattle_BattleReplayer
 		@randomindex               = 0
 		@player_info               = Marshal.load(battle[:player_info])
 		@opponent_info             = Marshal.load(battle[:opponent_info])
-		@player_party              = Marshal.load(battle[:player_party])
-		@opponent_party            = Marshal.load(battle[:opponent_party])
-		
+		# Not loaded from a separate dump: rebuilt by concatenating each
+		# loaded trainer's own .party, the same way pbTrainerBattleCore
+		# builds the combined party in the first place (TrainerBattles.rb).
+		# This keeps @party1/@party2 sharing the exact same Pokemon objects
+		# as @player_info[i].party/@opponent_info[i].party by reference --
+		# see the comment on pbStartBattle above for why that matters (a
+		# separate Marshal round-trip of the same data breaks that sharing,
+		# which is what let isLastAlive?'s alive_pokemon_count silently read
+		# a frozen, always-full-HP copy of the party during replay).
+		@player_party              = @player_info.flat_map(&:party)
+		@opponent_party            = @opponent_info.flat_map(&:party)
+
 
 		echo_rules_debug = false
 		arg_rules = ["terrain", "weather", "environment", "environ", "backdrop", "battleback", "base", "outcome", "outcomevar", "turnstosurvive"]
