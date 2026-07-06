@@ -356,6 +356,15 @@ end
 def playRecordedBattle(record_name, force_show_anims: nil)
 	original_level_cap = getLevelCap
 	scene = pbNewBattleScene
+	# Every recorded battle is already-decided, non-interactive playback --
+	# same flag Battle Frontier Challenge battles use (attr comment: "For
+	# non-interactive battles, can quit immediately"). Makes a message's own
+	# page-break pause resolve the same way MESSAGE_PAUSE_TIME's timer
+	# already does for a single-page message, rather than genuinely
+	# blocking for a keypress, and lets BACK quit out of watching early --
+	# both apply equally whether watching via the in-game VS Recorder item
+	# or the viewer's Watch tab.
+	scene.abortable = true
 	begin
 		battle = PokeBattle_TectonicReplayedBattle.new(scene, record_name)
 	rescue LoadError => e
