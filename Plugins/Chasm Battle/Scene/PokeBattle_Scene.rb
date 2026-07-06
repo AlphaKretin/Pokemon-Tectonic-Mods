@@ -182,7 +182,17 @@ class PokeBattle_Scene
             yield if block_given?   # For playing SE as soon as the message is all shown
             yielded = true
           end
-          if !@battleEnd
+          # At battle end, a paused message normally waits for real input
+          # rather than autoclosing (see the @abortable branch below) -- but
+          # @abortable's whole point is that there's no input to wait for
+          # (AI-vs-AI benchmarking, replay watch), and unlike every other
+          # paused message in a battle, this one has no "elsif !@abortable"
+          # path left to close it (that branch is unreachable once @abortable
+          # makes the outer `if` always true), so it would hang forever with
+          # no way out, manual or automatic. Letting the timer still apply
+          # here when @abortable is set keeps a real player's battle-end
+          # pause intact while giving automated playback a way out.
+          if !@battleEnd || @abortable
             if i>=MESSAGE_PAUSE_TIME*3   # Autoclose after 3 seconds
               cw.text = ""
               cw.visible = false
