@@ -9,9 +9,14 @@ if ENV["ELO_TOURNAMENT"]
     # pbEndOfBattle unconditionally writes a full per-random-draw call-stack
     # log to disk on every single battle, regardless of save_battle. Harmless
     # for one-off benchmark runs; pure waste at hundreds-of-thousands-of-
-    # battles tournament scale.
-    module PokeBattle_BattleRecorder
-        def saveRandomLog(path); end
+    # battles tournament scale. Left un-stubbed for a single Generate/Watch
+    # invocation (ELO_SAVE_REPLAY/ELO_WATCH_REPLAY_NAME) since that's exactly
+    # a one-off run, and the log is what lets a desync be diagnosed by
+    # diffing record-time vs. replay-time RNG draws turn-by-turn.
+    unless ENV["ELO_SAVE_REPLAY"] || ENV["ELO_WATCH_REPLAY_NAME"]
+        module PokeBattle_BattleRecorder
+            def saveRandomLog(path); end
+        end
     end
 
     # pbPrintException (used by both logonerr's per-move recovery and
