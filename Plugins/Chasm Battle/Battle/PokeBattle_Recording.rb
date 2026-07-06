@@ -97,14 +97,32 @@ module PokeBattle_BattleRecorder
 		super
 	end
 
+	# Always records the switch-in decision now, not just the player's own
+	# (previously only reached via pbPartyScreen). An AI-decided forced
+	# switch-in (U-turn, Parting Shot, a fainted Pokemon, etc.) re-invoked
+	# @battleAI.pbDefaultChooseNewEnemy on replay too, relying on it
+	# rederiving the exact same choice -- but that scoring depends on the
+	# AI's guessed/predicted knowledge of the opponent's moves
+	# (highestMoveScoreForBattler -> pbScorePredictedPlayerMoves in
+	# AI_Switch.rb), which comes from whatever heuristic populated
+	# @moveGuessHeuristics/@benchmarkMode at record time (e.g. the
+	# tournament's HEURISTIC_BASELINE "peek at real STAB moves" heuristic).
+	# Neither of those is saved into the recording or restored by
+	# PokeBattle_BattleReplayer, so replay's guessed moveset can differ from
+	# record's, re-deriving a *different* switch-in choice for the exact
+	# same board state -- confirmed diverging on a real replay (an
+	# AI-recorded Parting Shot switch-in came back as a different Pokemon
+	# on watch). Recording every switch-in verbatim, the same way a
+	# player's own choice already was, closes this off entirely rather than
+	# needing record-time AI state to be reconstructed bit-for-bit.
 	def pbSwitchInBetween(idxBattler, checkLaxOnly: false, canCancel: false, safeSwitch: nil)
-		if pbOwnedByPlayer?(idxBattler) && !@autoTesting && !@controlPlayer
-			ret = pbPartyScreen(idxBattler, checkLaxOnly, canCancel) 
-			@recorded_switches.push(ret)
-			return ret
+		ret = if pbOwnedByPlayer?(idxBattler) && !@autoTesting && !@controlPlayer
+			pbPartyScreen(idxBattler, checkLaxOnly, canCancel)
 		else
-			return @battleAI.pbDefaultChooseNewEnemy(idxBattler, safeSwitch)
+			@battleAI.pbDefaultChooseNewEnemy(idxBattler, safeSwitch)
 		end
+		@recorded_switches.push(ret)
+		ret
 	end
 
 	def registerRecordedChoice(index)
@@ -309,12 +327,13 @@ module PokeBattle_BattleReplayer
 		end
 	end
 
+	# Every switch-in decision is recorded now (see the recorder-side
+	# pbSwitchInBetween above), so replay always plays back the recorded
+	# choice verbatim instead of re-deriving an AI-owned switch-in fresh --
+	# closing off the record/replay AI-knowledge divergence that let a
+	# recorded and watched battle disagree on which Pokemon came in.
 	def pbSwitchInBetween(idxBattler, checkLaxOnly: false, canCancel: false, safeSwitch: nil)
-		if pbOwnedByPlayer?(idxBattler) && !@autoTesting && !@controlPlayer
-			return @recorded_switches.shift
-		else
-			return @battleAI.pbDefaultChooseNewEnemy(idxBattler, safeSwitch)
-		end
+		@recorded_switches.shift
 	end
 
 end
