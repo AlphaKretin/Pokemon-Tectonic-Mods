@@ -19,10 +19,23 @@
 module EloTournament
     REPLAY_SAVE_FILE_NAME = "Saves/ELOReplay.rxdata"
 
+    # ELO_CUSTOM_TRAINER_PBS (optional): registers the same custom trainer
+    # runCustomTrainerBattles! fought with, for whichever of T1/T2's label
+    # matches it -- needed because that trainer only ever existed in the
+    # in-memory GameData::Trainer of whichever shard process ran the
+    # original battle (see custom_trainer.rb), so a fresh replay-saving
+    # launch has no other way to look it up by label.
+    def self.lookupReplayTrainer(type, name, version, customTd)
+        wanted = "#{type}:#{name}" + (version > 0 ? "##{version}" : "")
+        return customTd if customTd && trainerLabel(customTd) == wanted
+        GameData::Trainer.get(type, name, version)
+    end
+
     def self.saveReplay!
         heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
-        t1 = GameData::Trainer.get(ENV["ELO_REPLAY_T1_TYPE"].to_sym, ENV["ELO_REPLAY_T1_NAME"], (ENV["ELO_REPLAY_T1_VERSION"] || "0").to_i)
-        t2 = GameData::Trainer.get(ENV["ELO_REPLAY_T2_TYPE"].to_sym, ENV["ELO_REPLAY_T2_NAME"], (ENV["ELO_REPLAY_T2_VERSION"] || "0").to_i)
+        customTd = registerCustomTrainerFromPBS!(ENV["ELO_CUSTOM_TRAINER_PBS"]) if ENV["ELO_CUSTOM_TRAINER_PBS"]
+        t1 = lookupReplayTrainer(ENV["ELO_REPLAY_T1_TYPE"].to_sym, ENV["ELO_REPLAY_T1_NAME"], (ENV["ELO_REPLAY_T1_VERSION"] || "0").to_i, customTd)
+        t2 = lookupReplayTrainer(ENV["ELO_REPLAY_T2_TYPE"].to_sym, ENV["ELO_REPLAY_T2_NAME"], (ENV["ELO_REPLAY_T2_VERSION"] || "0").to_i, customTd)
         seed = ENV["ELO_REPLAY_SEED"].to_i
         format = ENV["ELO_REPLAY_FORMAT"] || "single"
         # Substring match, same convention as tournament.rb's BATTLE_MODE/

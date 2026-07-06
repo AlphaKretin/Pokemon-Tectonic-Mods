@@ -258,6 +258,8 @@ if ENV["ELO_TOURNAMENT"]
             EloTournament.dumpTrainerCardData!
         elsif ENV["ELO_DUMP_CURSE_STRIP_DIFF"]
             EloTournament.dumpCurseStripDiff!
+        elsif ENV["ELO_CUSTOM_TRAINER_BATTLES"]
+            EloTournament.runCustomTrainerBattles!
         else
             EloTournament.run!
         end
