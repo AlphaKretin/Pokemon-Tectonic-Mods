@@ -138,8 +138,6 @@ module PokeBattle_BattleRecorder
 			:recorded_choices => @recorded_choices,
 			:recorded_switches => @recorded_switches,
 			:random => @random,
-			:controlPlayer => @controlPlayer,
-			:autoTesting => @autoTesting,
 			:player_info => @player_info,
 			:player_party => @player_party,
 			:player_party_starts => @player_party_starts,
@@ -227,16 +225,6 @@ module PokeBattle_BattleReplayer
 		@recorded_choices          = battle[:recorded_choices]
 		@recorded_switches         = battle[:recorded_switches]
 		@random                    = battle[:random]
-		# Must match record-time values: pbSwitchInBetween (PokeBattle_Recording.rb)
-		# branches on these to decide whether a switch-in came from the recorded
-		# log or from AI. Tournament/benchmark battles record with both true
-		# (full AI vs AI), leaving @recorded_switches empty; if replay defaulted
-		# these back to false, side-0 switch-ins would wrongly shift() off that
-		# empty array, returning nil and crashing pbMessagesOnReplace. Old saves
-		# predating this fix lack the keys and fall back to false (their prior,
-		# already-buggy-for-this-case behavior).
-		@controlPlayer              = battle[:controlPlayer] || false
-		@autoTesting                = battle[:autoTesting] || false
 		@save_battle               = false
 		@is_replayed               = true
 		@is_recorded               = false
