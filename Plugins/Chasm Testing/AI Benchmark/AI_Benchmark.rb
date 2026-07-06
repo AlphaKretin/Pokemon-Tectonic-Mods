@@ -334,6 +334,18 @@ module AIBenchmark
         # setBattleMode/@sideSizes controls on its own. We always pass exactly
         # one trainer per side, so this is [0] regardless of battle mode.
         battle.setBattleMode(battleMode)
+        # setBattleMode only sets @sideSizes on this battle object -- it never
+        # touches $PokemonTemp.battleRules["size"], unlike a live battle (a map
+        # event calls setBattleRule("double") beforehand, which populates that
+        # key). registerRules below clones $PokemonTemp.battleRules as the base
+        # of what gets saved into the recording, and the replay side restores
+        # @sideSizes purely by re-deriving battle.setBattleMode from that same
+        # "size" key (PokeBattle_Recording.rb's rules-replay loop) -- so without
+        # this, every saved doubles (or 3v3/etc.) recording replays as a single
+        # battle, silently mismatching @recorded_choices/@recorded_switches and
+        # crashing once playback reaches a battler index the wrongly-sized
+        # @battlers array doesn't have.
+        setBattleRule(battleMode) if saveBattle
         battle.party1starts    = [0]
         battle.party2starts    = [0]
         battle.autoTesting     = true
