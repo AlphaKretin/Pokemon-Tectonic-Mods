@@ -315,7 +315,7 @@ module AIBenchmark
     # result: 1 = test side (party1) wins, 2 = baseline side (party2) wins,
     #         0 = draw / timeout
     #--------------------------------------------------------------------------
-    def self.runBattle(trainerData1, trainerData2, heuristic1, heuristic2, battleMode: "single", saveBattle: false, backdrop: nil)
+    def self.runBattle(trainerData1, trainerData2, heuristic1, heuristic2, battleMode: "single", saveBattle: false, backdrop: nil, action_log_path: nil)
         trainer1 = trainerData1.to_trainer
         trainer2 = trainerData2.to_trainer
         party1 = trainer1.party
@@ -376,9 +376,37 @@ module AIBenchmark
         # when actually saving.
         battle.registerRules if saveBattle
 
+        # Ground-truth turn log for comparing against a desyncing replay watch.
+        # Hooked here (not read back off recorded_choices after the fact)
+        # because PokeBattle_Recording#recordChoices clones and nils out each
+        # choice's move object before storing it (not Marshal-able) -- by the
+        # time the battle ends, the move identity is gone from the recording
+        # itself and only recoverable while @choices is still the live array
+        # this turn. describeAction is the same human-readable formatter the
+        # engine's own dialogue-trigger code already uses for this exact
+        # [type, ...] choice shape -- but it only covers :None/:SwitchOut/
+        # :UseMove (all it's ever been called with elsewhere), so fall back
+        # to the raw choice type for the others a trainer battler can still
+        # produce (:UseItem, :Run, :Shift) rather than log a blank line.
+        action_log_lines = nil
+        if action_log_path
+            action_log_lines = []
+            battle.define_singleton_method(:recordChoices) do
+                @choices.each_with_index do |c, i|
+                    b = @battlers[i]
+                    next unless b && c
+                    description = describeAction(b, c) || c[0].to_s
+                    action_log_lines << "Turn #{@turnCount + 1}, #{b.pbThis(true)}: #{description}"
+                end
+                super()
+            end
+        end
+
         result  = battle.pbStartBattle
         $aiBenchmarkRunning = false
         elapsed = Time.now.to_f - t_start
+
+        File.open(action_log_path, "w") { |f| f.write(action_log_lines.join("\n")) } if action_log_lines
 
         { result: result, rounds: battle.turnCount, time_s: elapsed }
     end

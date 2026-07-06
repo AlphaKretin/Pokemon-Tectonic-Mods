@@ -15,6 +15,11 @@
 # UI -- nil in headless mode, same as everywhere else in this harness.
 # Set it here so the recording actually persists instead of silently
 # no-op'ing (PokeBattle_BattleRecorder#saveBattle returns early if nil).
+#
+# Also writes Analysis/replay_action_log.txt -- a plain-text, human-readable
+# turn-by-turn record of every action actually taken this run (AIBenchmark.
+# runBattle's action_log_path hook) -- as ground truth to diff against
+# whatever a desyncing .dat watch appears to show.
 #==============================================================================
 module EloTournament
     REPLAY_SAVE_FILE_NAME = "Saves/ELOReplay.rxdata"
@@ -55,7 +60,7 @@ module EloTournament
 
         result = begin
             srand(seed)
-            r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: battleMode, saveBattle: true, backdrop: ENV["ELO_REPLAY_BACKDROP"])
+            r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: battleMode, saveBattle: true, backdrop: ENV["ELO_REPLAY_BACKDROP"], action_log_path: "Analysis/replay_action_log.txt")
 
             saveFileName = $current_save_file_name.split("/")[1].delete_suffix(".rxdata")
             recordsPath = "./VSRecorder/#{saveFileName}"

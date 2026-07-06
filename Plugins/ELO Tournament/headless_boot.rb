@@ -21,33 +21,44 @@ if ENV["ELO_TOURNAMENT"]
     # be an unattended run until someone dismisses it by hand. Errors still
     # need to reach errorlog.txt (the tournament's error-detection depends on
     # it), so this keeps that half verbatim and drops the interactive half.
-    def pbPrintException(e)
-        emessage = if $EVENTHANGUPMSG && $EVENTHANGUPMSG != ""
-            msg = $EVENTHANGUPMSG
-            $EVENTHANGUPMSG = nil
-            msg
-        else
-            pbGetExceptionMessage(e)
-        end
-        message = "[Pokémon Essentials version #{Essentials::VERSION || ""}]\r\n"
-        gameVersion = (Settings::GAME_VERSION rescue "UNKNOWN")
-        message += "[Game version #{gameVersion}]\r\n"
-        message += "#{Essentials::ERROR_TEXT}\r\n"
-        message += "Exception: #{e.class}\r\n"
-        message += "Message: #{emessage}\r\n"
-        message += "\r\nBacktrace:\r\n"
-        btrace = ""
-        if e.backtrace
-            maxlength = $INTERNAL ? 25 : 10
-            e.backtrace[0, maxlength].each { |i| btrace += "#{i}\r\n" }
-        end
-        btrace.gsub!(/Section(\d+)/) { $RGSS_SCRIPTS[$1.to_i][1] } rescue nil
-        message += btrace
-        errorlog = "errorlog.txt"
-        errorlog = RTP.getSaveFileName("errorlog.txt") if (Object.const_defined?(:RTP) rescue false)
-        File.open(errorlog, "ab") do |f|
-            f.write("\r\n=================\r\n\r\n[#{Time.now}]\r\n")
-            f.write(message)
+    #
+    # Skipped entirely for ELO_WATCH_REPLAY_NAME (the viewer's Watch tab):
+    # there a human is already sitting in front of the game watching one
+    # replay at a time, so the engine's own interactive modal is exactly
+    # what's wanted -- it pauses the replay on each error instead of letting
+    # errorlog.txt get spammed by a batch of them in a row, which is the
+    # whole point when tracking down a VS Recorder desync one error at a
+    # time. Leaving this undefined here means the original (non-headless)
+    # pbPrintException stays in effect.
+    unless ENV["ELO_WATCH_REPLAY_NAME"]
+        def pbPrintException(e)
+            emessage = if $EVENTHANGUPMSG && $EVENTHANGUPMSG != ""
+                msg = $EVENTHANGUPMSG
+                $EVENTHANGUPMSG = nil
+                msg
+            else
+                pbGetExceptionMessage(e)
+            end
+            message = "[Pokémon Essentials version #{Essentials::VERSION || ""}]\r\n"
+            gameVersion = (Settings::GAME_VERSION rescue "UNKNOWN")
+            message += "[Game version #{gameVersion}]\r\n"
+            message += "#{Essentials::ERROR_TEXT}\r\n"
+            message += "Exception: #{e.class}\r\n"
+            message += "Message: #{emessage}\r\n"
+            message += "\r\nBacktrace:\r\n"
+            btrace = ""
+            if e.backtrace
+                maxlength = $INTERNAL ? 25 : 10
+                e.backtrace[0, maxlength].each { |i| btrace += "#{i}\r\n" }
+            end
+            btrace.gsub!(/Section(\d+)/) { $RGSS_SCRIPTS[$1.to_i][1] } rescue nil
+            message += btrace
+            errorlog = "errorlog.txt"
+            errorlog = RTP.getSaveFileName("errorlog.txt") if (Object.const_defined?(:RTP) rescue false)
+            File.open(errorlog, "ab") do |f|
+                f.write("\r\n=================\r\n\r\n[#{Time.now}]\r\n")
+                f.write(message)
+            end
         end
     end
 
