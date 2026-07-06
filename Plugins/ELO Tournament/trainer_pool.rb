@@ -67,8 +67,8 @@ module EloTournament
     # rules in Python, which would be easy to get subtly wrong.
     #
     # p.tribes (not a plain species lookup -- FRIENDTOALL/WILDCARD make a
-    # Pokemon count for every tribe, see Pokemon#tribes) and p.moves' name/type
-    # are resolved the same way, for the same reason.
+    # Pokemon count for every tribe, see Pokemon#tribes) and p.moves'/
+    # p.items' name/type are resolved the same way, for the same reason.
     def self.dumpTrainerCardData!
         data = buildTrainerPool.map do |entry|
             td = entry.trainer_data
@@ -91,7 +91,10 @@ module EloTournament
                         level: p.level,
                         nickname: (p.nicknamed? ? p.name : nil),
                         shiny: p.shiny?,
-                        held_items: p.items.map(&:to_s),
+                        # id kept alongside name (mirrors moves' name/type
+                        # pair below) since downstream icon lookups key off
+                        # the raw item id, not its display name.
+                        held_items: p.items.map { |id| { id: id.to_s, name: GameData::Item.get(id).name } },
                         tribes: p.tribes.map(&:to_s),
                         # p.types includes base type(s) + extraTypes already merged and deduped
                         types: p.types.map(&:to_s),
