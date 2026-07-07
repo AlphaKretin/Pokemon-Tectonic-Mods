@@ -60,6 +60,11 @@ module EloTournament
 
         result = begin
             srand(seed)
+            # One battle, not a benchmark batch -- let echoln through so any
+            # debug output (temporary or permanent) is actually visible when
+            # generating a single replay, unlike a real multi-thousand-battle
+            # run where it's silenced for speed (see AI_Benchmark.rb).
+            $aiBenchmarkAllowEcho = true
             r = AIBenchmark.runBattle(t1, t2, heuristic, heuristic, battleMode: battleMode, saveBattle: true, backdrop: ENV["ELO_REPLAY_BACKDROP"], action_log_path: "Analysis/replay_action_log.txt")
 
             saveFileName = $current_save_file_name.split("/")[1].delete_suffix(".rxdata")

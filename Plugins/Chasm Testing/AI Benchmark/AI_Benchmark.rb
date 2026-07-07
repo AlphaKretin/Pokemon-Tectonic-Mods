@@ -25,11 +25,20 @@
 # essential for benchmark speed.
 #==============================================================================
 $aiBenchmarkRunning = false
+# Set true around a single-replay generation (see replay.rb's saveReplay!)
+# to let echoln through anyway -- unlike a real benchmark/tournament batch
+# (hundreds/thousands of battles, where the screen-refresh cost genuinely
+# matters), one battle's debug output is cheap and often exactly what's
+# being manually debugged (e.g. temporary echoln calls added to a Move_*
+# handler). Doesn't affect pbMessage/showPartyHealing/pbLearnMove below --
+# those still always no-op under $aiBenchmarkRunning regardless, since a
+# real UI prompt would just hang a headless run.
+$aiBenchmarkAllowEcho = false
 
 unless respond_to?(:echoln_preBenchmark, true)
     alias :echoln_preBenchmark :echoln
     def echoln(msg)
-        return if $aiBenchmarkRunning
+        return if $aiBenchmarkRunning && !$aiBenchmarkAllowEcho
         echoln_preBenchmark(msg)
     end
 end

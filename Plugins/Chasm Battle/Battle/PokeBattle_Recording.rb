@@ -5,7 +5,6 @@ module PokeBattle_BattleRecorder
 	attr_accessor :recorded_choices #Array of the move choices made
 	attr_accessor :recorded_switches #Array of switches made
 	attr_accessor :random #Array of the random numbers used in the battle
-	attr_accessor :random_log
 
 	attr_accessor :player_info
 	attr_accessor :player_party
@@ -28,11 +27,35 @@ module PokeBattle_BattleRecorder
 		@recorded_choices = []
 		@recorded_switches = []
 		@random = []
-		@random_log = []
-		@priority_log = []
+		@diag_logs = Hash.new { |h, k| h[k] = [] }
 		@is_recorded = true
 		@save_battle = true
 		@type = type
+	end
+
+	# Generic diagnostic-log channel system, shared by every "trace what
+	# happened, turn by turn" log this recorder/replayer pair produces
+	# (random draws, priority-tiebreak order, boss AI decisions, ...) --
+	# previously each of these was its own copy-pasted @foo_log array +
+	# saveFooLog method. A channel name maps to one file,
+	# ./Analysis/<channel>_record.txt here (buffered, one write at
+	# pbEndOfBattle -- recording is stable, a battle that fails here is just
+	# a failed generation attempt, already reported by replay.rb's own
+	# rescue). See PokeBattle_BattleReplayer#diagLog for the replay-side
+	# override, which needs to flush per-call instead since that's exactly
+	# the case where the battle is most likely to crash or need killing
+	# partway through.
+	def diagLog(channel, line)
+		@diag_logs[channel].push("#{line}#{$/}")
+	end
+
+	def saveDiagLogs
+		suffix = @save_battle ? "record" : "replay"
+		@diag_logs.each_key { |channel| saveDiagLog(channel, "#{channel}_#{suffix}.txt") }
+	end
+
+	def saveDiagLog(channel, path)
+		File.open("./Analysis/" + path, "wb") { |f| f.write(@diag_logs[channel].join("")) }
 	end
 
 	def self.createDir
@@ -50,7 +73,7 @@ module PokeBattle_BattleRecorder
 		end
 		ret = rand(x)
 		@random.push(ret)
-		@random_log.push("#{ret.to_s}#{$/}#{caller.to_s}#{$/}")
+		diagLog("random", "#{ret.to_s}#{$/}#{caller.to_s}")
 		return ret
 	end
 
@@ -106,9 +129,7 @@ module PokeBattle_BattleRecorder
 
 	def pbEndOfBattle
 		saveBattle("Last battle") if @save_battle
-		save_random_log = true
-		saveRandomLog(@save_battle ? "random_record.txt" : "random_replay.txt") if save_random_log
-		savePriorityLog(@save_battle ? "priority_record.txt" : "priority_replay.txt")
+		saveDiagLogs
 		super
 	end
 
@@ -200,19 +221,11 @@ module PokeBattle_BattleRecorder
 		File.open("./VSRecorder/#{save_file_name}/#{name}.dat", "wb") { |f| f.write(getBattleData) }
 	end
 
-	def saveRandomLog(path)
-		File.open("./Analysis/" + path, "wb") { |f| f.write(@random_log.join("")) }
-	end
-
 	# Ground truth for comparing a recorded battle's turn order (including
 	# speed-tie resolution) against the same battle's replay -- see the call
 	# in Battle_Action_AttacksPriority.rb's pbCalculatePriority.
 	def logPriorityOrder(line)
-		@priority_log.push("#{line}#{$/}")
-	end
-
-	def savePriorityLog(path)
-		File.open("./Analysis/" + path, "wb") { |f| f.write(@priority_log.join("")) }
+		diagLog("priority", line)
 	end
 end
 
@@ -293,6 +306,21 @@ module PokeBattle_BattleReplayer
 		
 		@bossBattle = true if battle[:type] == 2
 
+		# Diagnostic-log channels (random/priority/boss_ai/...) exist
+		# specifically to diagnose a desyncing replay -- exactly the case
+		# where the battle is most likely to crash or need killing partway
+		# through. Recording doesn't have this problem (a battle that fails
+		# there is just a failed generation attempt, already reported by
+		# replay.rb's own rescue), so it's left buffered and written once
+		# from pbEndOfBattle same as before (see
+		# PokeBattle_BattleRecorder#diagLog). Replay instead appends+flushes
+		# per diagLog call below (see the saveDiagLogs no-op further down,
+		# which would otherwise clobber this with an empty write on a battle
+		# that *does* reach a clean end) -- @diag_truncated starts empty here
+		# so the first diagLog call for each channel truncates fresh instead
+		# of appending to a stale file from a previous watch.
+		@diag_truncated = {}
+
 	end
 
 	def pbRandom(x)
@@ -301,9 +329,34 @@ module PokeBattle_BattleReplayer
 		end
 		ret = @random[@randomindex]
 		@randomindex += 1
-		@random_log.push("#{ret.to_s}\n#{caller.to_s}\n")
+		# caller must be captured here, not inside diagLog's File.open block --
+		# evaluating it in there reports PokeBattle_Recording.rb's own `open`
+		# frame as the top of the stack instead of whatever actually called
+		# pbRandom, making every single draw look like a false divergence.
+		call_stack = caller.to_s
+		diagLog("random", "#{ret.to_s}#{$/}#{call_stack}")
 		return ret
 	end
+
+	# Overrides PokeBattle_BattleRecorder#diagLog -- replay needs to hit disk
+	# immediately per call instead of buffering for a single end-of-battle
+	# write, since replay is exactly the case that might crash or get killed
+	# mid-battle. Each channel's file is truncated on its first write this
+	# run (instead of upfront, since channel names aren't known ahead of
+	# time), then appended to for the rest of the run.
+	def diagLog(channel, line)
+		path = "./Analysis/#{channel}_replay.txt"
+		mode = @diag_truncated[channel] ? "a" : "w"
+		@diag_truncated[channel] = true
+		File.open(path, mode) { |f| f.write("#{line}#{$/}") }
+	end
+
+	# No-op: every channel is already fully written by the per-call appends
+	# in diagLog above by the time pbEndOfBattle would call this -- letting
+	# PokeBattle_BattleRecorder's version run here too would overwrite that
+	# with whatever's left in the (now-unused) @diag_logs buffers, which is
+	# empty.
+	def saveDiagLogs; end
 
 	def pbCommandPhase
 		pbCommandPhaseLoop(false)
@@ -377,6 +430,7 @@ class PokeBattle_Battle
 	def registerRules; end
 	def recordSkippedTurn; end
 	def logPriorityOrder(line); end
+	def diagLog(channel, line); end
 end
 
 class PokeBattle_TectonicRecordedBattle < PokeBattle_Battle
@@ -387,7 +441,7 @@ class PokeBattle_TectonicReplayedBattle < PokeBattle_Battle
 	include PokeBattle_BattleReplayer
 end
 
-def playRecordedBattle(record_name, force_show_anims: nil)
+def playRecordedBattle(record_name, force_show_anims: nil, action_log_path: nil)
 	original_level_cap = getLevelCap
 	scene = pbNewBattleScene
 	# Every recorded battle is already-decided, non-interactive playback --
@@ -404,6 +458,38 @@ def playRecordedBattle(record_name, force_show_anims: nil)
 	rescue LoadError => e
 		pbMessage(_INTL("This record cannot be opened ({1}).", e.message))
 		return
+	end
+
+	# Ground-truth-vs-playback diff tool: same human-readable per-turn
+	# description as AI_Benchmark.rb's recording-side action log (also
+	# built off describeAction against this exact [type, ...] choice
+	# shape), but on the replay side instead -- @choices here is rebuilt
+	# from @recorded_choices each phase (see pbCommandPhase/
+	# pbExtraCommandPhase above), so this reflects what the replay is
+	# actually about to execute this turn. Written turn-by-turn (append +
+	# close, not buffered to a single write at the end) so a desync that
+	# crashes or has to be killed mid-battle still leaves a partial log to
+	# diff against replay_action_log.txt up to wherever it stopped.
+	if action_log_path
+		File.open(action_log_path, "w") { |f| } # start each watch from a clean file
+		battle.define_singleton_method(:logReplayedChoices) do
+			lines = []
+			@choices.each_with_index do |c, i|
+				b = @battlers[i]
+				next unless b && c && !c.empty?
+				description = describeAction(b, c) || c[0].to_s
+				lines << "Turn #{@turnCount + 1}, #{b.pbThis(true)}: #{description}"
+			end
+			File.open(action_log_path, "a") { |f| f.puts(lines) } unless lines.empty?
+		end
+		battle.define_singleton_method(:pbCommandPhase) do
+			super()
+			logReplayedChoices
+		end
+		battle.define_singleton_method(:pbExtraCommandPhase) do
+			super()
+			logReplayedChoices
+		end
 	end
 
 	pbPrepareBattle(battle)

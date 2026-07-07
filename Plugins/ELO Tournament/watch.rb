@@ -83,7 +83,7 @@ module EloTournament
             # few animations' Fast-mode timing, but can't survive the
             # baked-in rule clobber on its own.
             force_show_anims = ENV["ELO_WATCH_BATTLESCENE"] ? (ENV["ELO_WATCH_BATTLESCENE"].to_i != 2) : nil
-            decision = playRecordedBattle(ENV["ELO_WATCH_REPLAY_NAME"], force_show_anims: force_show_anims)
+            decision = playRecordedBattle(ENV["ELO_WATCH_REPLAY_NAME"], force_show_anims: force_show_anims, action_log_path: ENV["ELO_WATCH_ACTION_LOG"])
             error_log_entry = nil
             if errorLogSize > error_log_before && File.exist?(errorLogPath)
                 File.open(errorLogPath, "rb") do |f|
