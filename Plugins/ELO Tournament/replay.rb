@@ -46,7 +46,7 @@ module EloTournament
         # Substring match, same convention as tournament.rb's BATTLE_MODE/
         # UNCURSED_RUN -- lets format carry both axes (e.g. "double_uncursed")
         # without its own dedicated branch per combination.
-        battleMode = format.include?("double") ? "double" : "single"
+        battleMode = format.include?("double") ? "double" : (format.include?("triple") ? "triple" : "single")
         uncursed = format.include?("uncursed")
         outputName = (ENV["ELO_REPLAY_NAME"] || "#{trainerLabel(t1)}_vs_#{trainerLabel(t2)}_#{format}_#{seed}")
             .gsub(/[^A-Za-z0-9_.-]/, "_")
