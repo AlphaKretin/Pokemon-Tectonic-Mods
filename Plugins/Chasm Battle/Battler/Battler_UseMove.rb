@@ -935,7 +935,7 @@ class PokeBattle_Battler
             end
         end
         # Self-Destruct/Explosion's damaging and fainting of user
-        move.pbSelfKO(user) if hitNum == 0 && !@battle.autoTesting
+        move.pbSelfKO(user) if hitNum == 0 && !(@battle.autoTesting && @battle.autoTestingRandomization)
         user.pbFaint if user.fainted?
         if move.damagingMove?
             targets.each do |b|

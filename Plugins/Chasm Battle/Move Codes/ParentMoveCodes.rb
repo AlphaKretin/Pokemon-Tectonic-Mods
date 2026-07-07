@@ -1222,7 +1222,7 @@ class PokeBattle_PartyMemberEffectMove < PokeBattle_Move
     end
 
     def pbMoveFailed?(user, _targets, show_message)
-        return true if @battle.autoTesting
+        return true if @battle.autoTesting && @battle.autoTestingRandomization
         @battle.pbParty(user.index).each do |pkmn|
             return false if legalChoice(pkmn)
         end
@@ -1602,7 +1602,7 @@ module EmpoweredMove
     end
 
     def summonAvatar(user,species,summonMessage = nil)
-        if @battle.autoTesting
+        if @battle.autoTesting && @battle.autoTestingRandomization
             echoln("Skipping an Avatar summon")
             return
         end

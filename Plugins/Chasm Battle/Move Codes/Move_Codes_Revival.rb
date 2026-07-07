@@ -74,7 +74,7 @@ class PokeBattle_Move_RevivePartyMemberTo50HPThenSwitch < PokeBattle_Move
     end
 
     def pbMoveFailed?(user, _targets, show_message)
-        return true if @battle.autoTesting
+        return true if @battle.autoTesting && @battle.autoTestingRandomization
         return true if user.battle.pbIsTrapped?(user.index)
         @battle.pbParty(user.index).each do |pkmn|
             return false if legalChoice(pkmn)
