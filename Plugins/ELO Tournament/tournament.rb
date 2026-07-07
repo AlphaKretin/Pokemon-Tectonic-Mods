@@ -98,6 +98,17 @@ module EloTournament
         # or it silently drifts from total.
         done    = pairs.count { |(e1, e2)| completed.key?(pairKey(e1.trainer_data, e2.trainer_data)) }
 
+        # Write a checkpoint before the first battle even starts, not just
+        # every PROGRESS_INTERVAL battles. A fresh watchdog relaunch is
+        # always a brand-new process -- and under chunk oversubscription, a
+        # freshly-reassigned host is a brand-new *chunk* too -- so without
+        # this, a stale FINISHED status file from whatever this host's
+        # previous, now-permanently-reassigned chunk left behind is the
+        # only thing watch scripts can see until this run's first
+        # checkpoint (up to PROGRESS_INTERVAL battles later), which reads
+        # as "stalled at 100%" rather than "just started."
+        writeStatus(done, total, t_start, ran, finished: (done >= total), global_total: global_total)
+
         pairs.each do |(e1, e2)|
             break if BATTLE_LIMIT && ran >= BATTLE_LIMIT
 
