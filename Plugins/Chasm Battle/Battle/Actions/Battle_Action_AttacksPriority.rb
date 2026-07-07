@@ -259,6 +259,18 @@ class PokeBattle_Battle
                 comma = true
             end
             PBDebug.log(logMsg)
+            # Ground truth for comparing a recorded battle against its replay --
+            # includes speed/sub-priority/priority/tie-breaker per entry, since
+            # two battlers can look identical in the plain debug log above
+            # (same name, adjacent indexes) despite differing on the one value
+            # (the tie-breaker) that actually decided their order.
+            priorityLine = "Turn #{@turnCount} #{fullCalc ? "full" : "recalc"}: "
+            priorityLine += @priority.map { |orderArray|
+                b = orderArray[0]
+                "idx=#{b.index} #{b.pbThis(false)} speed=#{orderArray[1]} subpri=#{orderArray[2]} " +
+                    "pri=#{orderArray[3]} tie=#{orderArray[4]}"
+            }.join(", ")
+            logPriorityOrder(priorityLine)
         end
     end
 

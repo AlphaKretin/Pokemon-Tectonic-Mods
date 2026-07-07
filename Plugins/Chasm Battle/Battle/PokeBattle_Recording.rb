@@ -29,6 +29,7 @@ module PokeBattle_BattleRecorder
 		@recorded_switches = []
 		@random = []
 		@random_log = []
+		@priority_log = []
 		@is_recorded = true
 		@save_battle = true
 		@type = type
@@ -107,6 +108,7 @@ module PokeBattle_BattleRecorder
 		saveBattle("Last battle") if @save_battle
 		save_random_log = true
 		saveRandomLog(@save_battle ? "random_record.txt" : "random_replay.txt") if save_random_log
+		savePriorityLog(@save_battle ? "priority_record.txt" : "priority_replay.txt")
 		super
 	end
 
@@ -200,6 +202,17 @@ module PokeBattle_BattleRecorder
 
 	def saveRandomLog(path)
 		File.open("./Analysis/" + path, "wb") { |f| f.write(@random_log.join("")) }
+	end
+
+	# Ground truth for comparing a recorded battle's turn order (including
+	# speed-tie resolution) against the same battle's replay -- see the call
+	# in Battle_Action_AttacksPriority.rb's pbCalculatePriority.
+	def logPriorityOrder(line)
+		@priority_log.push("#{line}#{$/}")
+	end
+
+	def savePriorityLog(path)
+		File.open("./Analysis/" + path, "wb") { |f| f.write(@priority_log.join("")) }
 	end
 end
 
@@ -363,6 +376,7 @@ class PokeBattle_Battle
 	def registerReplayedChoice(index); end
 	def registerRules; end
 	def recordSkippedTurn; end
+	def logPriorityOrder(line); end
 end
 
 class PokeBattle_TectonicRecordedBattle < PokeBattle_Battle
