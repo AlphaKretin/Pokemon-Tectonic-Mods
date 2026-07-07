@@ -9,14 +9,16 @@ BattleHandlers::OnItemActivatedAbility.add(:JUGGLING,
         battle.pbShowAbilitySplash(user, ability)
         if valid_allies.length == 1
             ally = valid_allies[0]
-        elsif user.pbOwnedByPlayer?
+        elsif battle.autoTesting && battle.autoTestingRandomization
+            ally = valid_allies.sample
+        elsif !user.humanControlled? # Trainer AI
+            ally = valid_allies[0]
+        else
             choice = battle.scene.pbChooseWithThinkingLoop(
                 _INTL("Pass {1} to which ally?", getItemName(item)),
                 valid_allies.map { |b| b.pbThis }
             )
             ally = valid_allies[choice]
-        else
-            ally = valid_allies.sample
         end
         user.applyEffect(:JugglingThrown)
         ally.giveItem(item)

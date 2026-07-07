@@ -113,9 +113,9 @@ class PokeBattle_Move_TechnoBlast < PokeBattle_Move_TypeDependsOnUserSpecialItem
         return unless user.hasActiveAbility?(:MODUSSWITCH)
         return unless user.countsAs?(:GENESECT)
         drivesToChooseFrom = @itemTypes.keys
-        if @battle.autoTesting
+        if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenDrive = drivesToChooseFrom.sample
-        elsif !user.pbOwnedByPlayer? # Trainer AI
+        elsif !user.humanControlled? # Trainer AI
             @chosenDrive = drivesToChooseFrom[0]
         else
             driveNames = drivesToChooseFrom.map { |drive| GameData::Item.get(drive).name }

@@ -1415,9 +1415,9 @@ BattleHandlers::AbilityOnSwitchIn.add(:FALSEFRONT,
       if validTypes.length == 1
           chosenType = validTypes[0]
       elsif validTypes.length > 1
-          if battle.autoTesting
+          if battle.autoTesting && battle.autoTestingRandomization
               chosenType = validTypes.sample
-          elsif !battler.pbOwnedByPlayer? # Trainer AI
+          elsif !battler.humanControlled? # Trainer AI
               validTypes.each do |type|
                 next unless battler.pbHasAttackingType?(type)
                 chosenType = type

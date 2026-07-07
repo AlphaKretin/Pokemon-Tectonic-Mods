@@ -76,9 +76,9 @@ BattleHandlers::AbilityOnSwitchOut.add(:CLUMSYKINESIS,
       if battler.losableItemCount == 1
           chosenItem = battler.loseableItems[0]
       elsif battler.losableItemCount > 1
-          if battle.autoTesting
+          if battle.autoTesting && battle.autoTestingRandomization
               chosenItem = battler.loseableItems.sample
-          elsif !battler.pbOwnedByPlayer? # Trainer AI
+          elsif !battler.humanControlled? # Trainer AI
               chosenItem = battler.loseableItems[0]
           else
               itemNames = []
@@ -104,9 +104,9 @@ BattleHandlers::AbilityOnSwitchOut.add(:COSTUMECHANGE,
       form2Name = GameData::Species.get_species_form(:ORICORIO,2).form_name
       form3Name = GameData::Species.get_species_form(:ORICORIO,3).form_name
       choices = [form0Name,form1Name,form2Name,form3Name]
-      if battle.autoTesting
+      if battle.autoTesting && battle.autoTestingRandomization
         choice = rand(3)
-      elsif !battler.pbOwnedByPlayer? # Trainer AI
+      elsif !battler.humanControlled? # Trainer AI
         choice = 0
       else
         choice = battle.scene.pbChooseWithThinkingLoop(_INTL("Which form should it take?"),choices)

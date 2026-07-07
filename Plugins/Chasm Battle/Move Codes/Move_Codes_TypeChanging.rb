@@ -446,9 +446,9 @@ class PokeBattle_Move_SetTargetTypesToChoiceOfDragonFairySteel < PokeBattle_Move
         if validTypes.length == 1
             @chosenType = validTypes[0]
         elsif validTypes.length > 1
-            if @battle.autoTesting
+            if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenType = validTypes.sample
-            elsif !user.pbOwnedByPlayer? # Trainer AI
+            elsif !user.humanControlled? # Trainer AI
                 @chosenType = validTypes[0]
             elsif !replayed_choice.nil?
                 @chosenType = replayed_choice

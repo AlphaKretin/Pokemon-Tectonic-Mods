@@ -100,9 +100,9 @@ BattleHandlers::AbilityOnHPDroppedBelowHalf.add(:VOIDWARRANTY,
       next unless formChoices.length > 0
       
       battle.pbShowAbilitySplash(battler, ability)
-      if battle.autoTesting
+      if battle.autoTesting && battle.autoTestingRandomization
         choiceIndex = rand(formChoices.length)
-      elsif !battler.pbOwnedByPlayer? # Trainer AI
+      elsif !battler.humanControlled? # Trainer AI
         choiceIndex = 0
       else
         choiceIndex = battle.scene.pbChooseWithThinkingLoop(_INTL("Which form should {1} take?", battler.name), choiceNames)

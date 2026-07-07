@@ -158,9 +158,9 @@ class PokeBattle_Move_UseChoiceOf3LastUsedMoves < PokeBattle_Move
         if moveChoices.length == 1
             @chosenMoveID = moveChoices[0]
         elsif moveChoices.length > 1
-            if @battle.autoTesting
+            if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenMoveID = moveChoices.sample
-            elsif !user.pbOwnedByPlayer? # Trainer AI
+            elsif !user.humanControlled? # Trainer AI
                 @chosenMoveID = moveChoices[0]
             elsif !replayed_choice.nil?
                 @chosenMoveID = replayed_choice

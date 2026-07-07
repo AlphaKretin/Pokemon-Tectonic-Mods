@@ -169,9 +169,9 @@ class PokeBattle_Move_UseChoiceOf3RandomNonSignatureStatusMoves < PokeBattle_Mov
             end
         end
 
-        if @battle.autoTesting
+        if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenMove = validMoves.sample
-        elsif !user.pbOwnedByPlayer? # Trainer AI
+        elsif !user.humanControlled? # Trainer AI
             @chosenMove = validMoves[0]
         elsif !replayed_choice.nil?
             @chosenMove = replayed_choice
@@ -296,9 +296,9 @@ class PokeBattle_Move_UseChoiceOf3RandomNonSignatureNonPsychicDamagingMoves < Po
             end
         end
 
-        if @battle.autoTesting
+        if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenMove = validMoves.sample
-        elsif !user.pbOwnedByPlayer? # Trainer AI
+        elsif !user.humanControlled? # Trainer AI
             @chosenMove = validMoves[0]
         elsif !replayed_choice.nil?
             @chosenMove = replayed_choice

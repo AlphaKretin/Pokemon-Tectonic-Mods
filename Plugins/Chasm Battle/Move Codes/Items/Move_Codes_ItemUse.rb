@@ -44,9 +44,9 @@ class PokeBattle_Move_GiftItem < PokeBattle_Move
         if validItems.length == 1
             @chosenItem = validItems[0]
         elsif validItems.length > 1
-            if @battle.autoTesting
+            if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenItem = validItems.sample
-            elsif !user.pbOwnedByPlayer? # Trainer AI
+            elsif !user.humanControlled? # Trainer AI
                 @chosenItem = validItems[0]
             elsif !replayed_choice.nil?
                 @chosenItem = replayed_choice
@@ -176,9 +176,9 @@ class PokeBattle_Move_Fling < PokeBattle_Move
         if validItems.length == 1
             @chosenItem = validItems[0]
         elsif validItems.length > 1
-            if @battle.autoTesting
+            if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenItem = validItems.sample
-            elsif !user.pbOwnedByPlayer? # Trainer AI
+            elsif !user.humanControlled? # Trainer AI
                 @chosenItem = validItems[0]
             elsif !replayed_choice.nil?
                 @chosenItem = replayed_choice
@@ -333,9 +333,9 @@ class PokeBattle_Move_NaturalGift < PokeBattle_Move
         if validItems.length == 1
             @chosenItem = validItems[0]
         elsif validItems.length > 1
-            if @battle.autoTesting
+            if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenItem = validItems.sample
-            elsif !user.pbOwnedByPlayer? # Trainer AI
+            elsif !user.humanControlled? # Trainer AI
                 @chosenItem = validItems[0]
             elsif !replayed_choice.nil?
                 @chosenItem = replayed_choice
