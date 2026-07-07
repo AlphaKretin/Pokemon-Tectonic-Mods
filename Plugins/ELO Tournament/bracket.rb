@@ -1,12 +1,11 @@
 #==============================================================================
 # ELO Tournament — top-16 seeded elimination bracket
 #
-# Exhibition feature, separate from the rating data itself: takes the top 16
-# trainers out of a finished (or in-progress) ratings_<format>.json --
-# converted to a plain seed list by analysis/bracket_seeds.py, since this
-# runs inside mkxp-z's embedded Ruby, which doesn't ship a JSON parser (see
-# tournament.rb) -- and plays a standard seeded single-elimination bracket
-# over them, saving a replay (.dat) of every match.
+# Exhibition feature, separate from the rating data itself: plays a standard
+# seeded single-elimination bracket over a hand-curated list of 16 entrants
+# (a plain tab-separated seed list, not JSON -- this runs inside mkxp-z's
+# embedded Ruby, which doesn't ship a JSON parser, see tournament.rb),
+# saving a replay (.dat) of every match.
 #
 # Every match is a *fresh* battle, even if that exact pairing already has a
 # row in the sparse round-robin results: the bracket is a showcase, not more
@@ -201,10 +200,10 @@ module EloTournament
         td
     end
 
-    # seed<TAB>trainer_label<TAB>rating(ignored), one line per entrant, blank
-    # lines and #-comments skipped. Written by analysis/bracket_seeds.py.
+    # seed<TAB>trainer_label(<TAB>anything, ignored), one line per entrant,
+    # blank lines and #-comments skipped. Hand-curated, not generated.
     def self.readBracketSeeds
-        raise "Bracket seeds file not found: #{BRACKET_SEEDS_PATH} (run analysis/bracket_seeds.py first)" unless File.exist?(BRACKET_SEEDS_PATH)
+        raise "Bracket seeds file not found: #{BRACKET_SEEDS_PATH}" unless File.exist?(BRACKET_SEEDS_PATH)
         seeds = []
         File.foreach(BRACKET_SEEDS_PATH) do |line|
             line = line.strip
