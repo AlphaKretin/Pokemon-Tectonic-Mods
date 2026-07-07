@@ -31,7 +31,7 @@ module EloTournament
         keys
     end
 
-    def self.writeCustomTrainerStatus(done, total, t_start, finished: false, error: nil)
+    def self.writeCustomTrainerStatus(done, total, t_start, finished: false, error: nil, global_total: nil)
         elapsed = Time.now - t_start
         rate = done > 0 && elapsed > 0 ? done / elapsed : nil
         remaining = total - done
@@ -39,6 +39,10 @@ module EloTournament
         File.open(CUSTOM_TRAINER_STATUS_PATH, "w") { |f| f.write(json_encode({
             done: done,
             total: total,
+            # See tournament.rb's writeStatus -- same value across every
+            # shard (the full opponent-pool size before the SHARD_COUNT
+            # split), so watch scripts get a stable denominator immediately.
+            global_total: global_total || total,
             percent: total > 0 ? (done * 100.0 / total).round(2) : 0,
             elapsed_s: elapsed.round(1),
             rate_per_s: rate&.round(3),
@@ -64,6 +68,7 @@ module EloTournament
         # opponent list.
         pool.each { |e| applyCurseStripping!(e.trainer_data) if e.curse } if UNCURSED_RUN
 
+        global_total = pool.length
         opponents = []
         pool.each_with_index { |e, i| opponents << e if i % SHARD_COUNT == SHARD_INDEX }
         total = opponents.length
@@ -74,7 +79,7 @@ module EloTournament
         # scoped to this shard's current opponents rather than every row ever
         # written to CUSTOM_TRAINER_RESULTS_PATH.
         done = opponents.count { |entry| completed.key?("#{customLabel}|#{trainerLabel(entry.trainer_data)}|#{FORMAT}") }
-        writeCustomTrainerStatus(done, total, t_start)
+        writeCustomTrainerStatus(done, total, t_start, global_total: global_total)
 
         opponents.each do |entry|
             opponentTd = entry.trainer_data
@@ -99,7 +104,7 @@ module EloTournament
             })) }
             completed[key] = true
             done += 1
-            writeCustomTrainerStatus(done, total, t_start, finished: (done >= total))
+            writeCustomTrainerStatus(done, total, t_start, finished: (done >= total), global_total: global_total)
         end
     rescue => e
         pbPrintException(e) rescue nil

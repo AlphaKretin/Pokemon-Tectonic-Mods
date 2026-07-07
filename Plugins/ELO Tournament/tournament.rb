@@ -76,6 +76,12 @@ module EloTournament
 
         pool = buildTrainerPool
         all_pairs = buildPairs(pool)
+        # The full pre-shard-split count, for watch scripts to use as a
+        # stable denominator -- unlike `total` (this shard's own slice),
+        # global_total is the same value across every shard/chunk of this
+        # format, so it's known as soon as any one of them checkpoints,
+        # instead of only being inferable once every shard has started.
+        global_total = all_pairs.length
         pairs = []
         all_pairs.each_with_index { |pair, i| pairs << pair if i % SHARD_COUNT == SHARD_INDEX }
         total = pairs.length
@@ -123,13 +129,13 @@ module EloTournament
             completed[key] = true
             done += 1
             ran  += 1
-            writeStatus(done, total, t_start, ran) if ran % PROGRESS_INTERVAL == 0
+            writeStatus(done, total, t_start, ran, global_total: global_total) if ran % PROGRESS_INTERVAL == 0
         end
 
-        writeStatus(done, total, t_start, ran, finished: (done >= total))
+        writeStatus(done, total, t_start, ran, finished: (done >= total), global_total: global_total)
     rescue => e
         pbPrintException(e) rescue nil
-        writeStatus(done || 0, total || 0, t_start || Time.now, ran || 0, error: {
+        writeStatus(done || 0, total || 0, t_start || Time.now, ran || 0, global_total: global_total || 0, error: {
             error_class: e.class.name,
             error_message: e.message,
             backtrace: e.backtrace&.first(20),
@@ -362,7 +368,7 @@ module EloTournament
         })) }
     end
 
-    def self.writeStatus(done, total, t_start, ran, finished: false, error: nil)
+    def self.writeStatus(done, total, t_start, ran, finished: false, error: nil, global_total: nil)
         elapsed = Time.now - t_start
         rate = ran > 0 && elapsed > 0 ? ran / elapsed : nil
         remaining = total - done
@@ -371,6 +377,11 @@ module EloTournament
         File.open(STATUS_PATH, "w") { |f| f.write(json_encode({
             done: done,
             total: total,
+            # Same value across every shard/chunk of this format (the full
+            # pairing count before the SHARD_COUNT split) -- watch scripts
+            # should use this, not a sum of every shard's own `total`, as
+            # the denominator for a format's real progress.
+            global_total: global_total || total,
             percent: total > 0 ? (done * 100.0 / total).round(2) : 0,
             elapsed_s: elapsed.round(1),
             rate_per_s: rate&.round(3),
