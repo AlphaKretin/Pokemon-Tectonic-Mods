@@ -56,6 +56,20 @@ module EloTournament
     SHARD_INDEX = (ENV["ELO_SHARD_INDEX"] || "0").to_i
     SHARD_COUNT = (ENV["ELO_SHARD_COUNT"] || "1").to_i
 
+    # Restricts buildPairs' edges to only pairings touching at least one of
+    # these trainer labels (e.g. "POKEMONMASTER_Vanya:Vanya#3") -- for
+    # rerunning just the pairings affected by a specific trainer/behavior
+    # fix across this format's full pool, without re-fighting everything.
+    # Applied as a filter *after* each format's own normal pool-prep (curse
+    # stripping, identical_to_base exclusion, sampling, etc. -- see
+    # buildPairs), so it works identically regardless of format, and the
+    # launcher is expected to point RESULTS_PATH/etc at a distinctly-named
+    # file (not the format's own full-round-robin file) since this produces
+    # a small partial result set, not a complete one -- see
+    # analysis/apply_subset_rerun.py, which splices these results back into
+    # the real per-format files afterward.
+    SUBSET_TRAINER_LABELS = ENV["ELO_SUBSET_TRAINER_LABELS"] ? ENV["ELO_SUBSET_TRAINER_LABELS"].split(",").map(&:strip) : nil
+
     def self.run!
         heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
         raise "Unknown heuristic #{AI_HEURISTIC_KEY.inspect}" unless heuristic
@@ -71,7 +85,12 @@ module EloTournament
 
         t_start = Time.now
         ran     = 0
-        done    = completed.length
+        # Not completed.length: RESULTS_PATH accumulates indefinitely across
+        # sessions (see module comment), so it can hold rows for pairings no
+        # longer in this shard's current `pairs` (pool/pairing composition
+        # changed between runs). done must be scoped to this run's own pairs,
+        # or it silently drifts from total.
+        done    = pairs.count { |(e1, e2)| completed.key?(pairKey(e1.trainer_data, e2.trainer_data)) }
 
         pairs.each do |(e1, e2)|
             break if BATTLE_LIMIT && ran >= BATTLE_LIMIT
@@ -133,7 +152,18 @@ module EloTournament
         else
             allEdges(eligible)
         end
+        edges = filterToSubsetTrainers(edges) if SUBSET_TRAINER_LABELS
         edges.flat_map { |e1, e2| pairsForEdge(e1, e2) }
+    end
+
+    # See SUBSET_TRAINER_LABELS above. Applied after the format-specific
+    # edge builder above, not folded into each of them, so a subset rerun
+    # always sees exactly the same pool/edges a full run of that format
+    # would have produced, just narrowed down afterward.
+    def self.filterToSubsetTrainers(edges)
+        labels = {}
+        SUBSET_TRAINER_LABELS.each { |l| labels[l] = true }
+        edges.select { |e1, e2| labels[trainerLabel(e1.trainer_data)] || labels[trainerLabel(e2.trainer_data)] }
     end
 
     # Pairing for the curse-stripped format. Classifies every cursed pool

@@ -70,7 +70,10 @@ module EloTournament
 
         completed = readCompletedCustomTrainerKeys
         t_start = Time.now
-        done = completed.length
+        # Not completed.length: see tournament.rb's run! for why this must be
+        # scoped to this shard's current opponents rather than every row ever
+        # written to CUSTOM_TRAINER_RESULTS_PATH.
+        done = opponents.count { |entry| completed.key?("#{customLabel}|#{trainerLabel(entry.trainer_data)}|#{FORMAT}") }
         writeCustomTrainerStatus(done, total, t_start)
 
         opponents.each do |entry|
