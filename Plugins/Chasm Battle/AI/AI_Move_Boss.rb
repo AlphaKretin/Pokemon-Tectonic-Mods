@@ -24,7 +24,9 @@ class PokeBattle_AI
         targetingSizeLastRound = 2 if targetingSizeLastRound > 2
         PBDebug.log("[BOSS AI] #{user.pbThis} (#{user.index}) values moves with targeting size other than #{targetingSizeLastRound}") if AVATARS_DIVERSIFY_TARGETING_BETWEEN_ROUNDS
         user.eachMoveWithIndex do |move, i|
-            move.pp = move.total_pp if @battle.autoTesting
+            # This is not random behaviour, but it is undesired behaviour for gameplay-accurate simulations
+            # and exists to fuel the infinite random testing
+            move.pp = move.total_pp if @battle.autoTesting and @battle.autoTestingRandomization
             unless @battle.pbCanChooseMove?(idxBattler, i, false)
                 PBDebug.log("[BOSS AI] #{user.pbThis} (#{user.index}) can't choose: #{move.name}")
                 next
