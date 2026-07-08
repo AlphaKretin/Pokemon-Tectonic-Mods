@@ -1,6 +1,14 @@
 class PokeBattle_Battle
     class BattleAbortedException < Exception; end
 
+    # Round at which an autoTesting/debug battle gets aborted as undecided
+    # (see pbBattleLoop) rather than run indefinitely. Plain constant, not an
+    # ENV read, so this file has no knowledge of the ELO Tournament plugin --
+    # that plugin overrides the value itself (via remove_const/const_set,
+    # since plugins load after this file) when ELO_TURN_TIMEOUT is set, e.g.
+    # for rerunning aborted battles with a longer cap. See tournament.rb.
+    AUTO_TESTING_TURN_TIMEOUT = 100
+
     def pbAbort
         raise BattleAbortedException, "Battle aborted"
     end
@@ -446,10 +454,10 @@ class PokeBattle_Battle
         loop do # Now begin the battle loop
             PBDebug.log("")
             PBDebug.log("***Round #{@turnCount + 1}***")
-            if (@debug || @autoTesting) && @turnCount >= 100
+            if (@debug || @autoTesting) && @turnCount >= AUTO_TESTING_TURN_TIMEOUT
                 @decision = pbDecisionOnTime
                 PBDebug.log("")
-                PBDebug.log("***Undecided after 100 rounds, aborting***")
+                PBDebug.log("***Undecided after #{AUTO_TESTING_TURN_TIMEOUT} rounds, aborting***")
                 pbAbort
                 break
             end

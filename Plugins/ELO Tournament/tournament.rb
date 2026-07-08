@@ -70,6 +70,26 @@ module EloTournament
     # the real per-format files afterward.
     SUBSET_TRAINER_LABELS = ENV["ELO_SUBSET_TRAINER_LABELS"] ? ENV["ELO_SUBSET_TRAINER_LABELS"].split(",").map(&:strip) : nil
 
+    # Same idea as SUBSET_TRAINER_LABELS, but for rerunning an exact list of
+    # pairings (e.g. just the handful of battles that hit the 100-round
+    # timeout) instead of every pairing that touches a given trainer -- most
+    # of a trainer's ~700+ pairings wouldn't be affected, so a label-based
+    # subset would re-fight far more than necessary. Manifest is a plain
+    # tab-separated file, one pairing per line (trainer1_label, trainer2_label
+    # -- same "TYPE:Name#Version" label format as SUBSET_TRAINER_LABELS),
+    # blank lines and #-comments skipped, matching bracket.rb's
+    # readBracketSeeds convention. Path given via ELO_SUBSET_PAIRS_PATH.
+    SUBSET_PAIRS_PATH = ENV["ELO_SUBSET_PAIRS_PATH"]
+
+    # Battles that hit AUTO_TESTING_TURN_TIMEOUT (Battle_StartAndEnd.rb) get
+    # aborted as undecided at that round -- overridable here (rather than a
+    # plain ENV read in the engine file itself, which has no business knowing
+    # about this plugin) so a rerun can retry just those battles with a
+    # longer cap and see if they resolve naturally. Plain reassignment, same
+    # as any other configuration constant in this codebase (e.g.
+    # AvatarConstants.rb) -- Ruby just warns on the re-init, it doesn't error.
+    PokeBattle_Battle::AUTO_TESTING_TURN_TIMEOUT = ENV["ELO_TURN_TIMEOUT"].to_i if ENV["ELO_TURN_TIMEOUT"]
+
     def self.run!
         heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
         raise "Unknown heuristic #{AI_HEURISTIC_KEY.inspect}" unless heuristic
@@ -170,6 +190,7 @@ module EloTournament
             allEdges(eligible)
         end
         edges = filterToSubsetTrainers(edges) if SUBSET_TRAINER_LABELS
+        edges = filterToSubsetPairs(edges) if SUBSET_PAIRS_PATH
         edges.flat_map { |e1, e2| pairsForEdge(e1, e2) }
     end
 
@@ -181,6 +202,32 @@ module EloTournament
         labels = {}
         SUBSET_TRAINER_LABELS.each { |l| labels[l] = true }
         edges.select { |e1, e2| labels[trainerLabel(e1.trainer_data)] || labels[trainerLabel(e2.trainer_data)] }
+    end
+
+    # See SUBSET_PAIRS_PATH above. Unordered pair match (a "TYPE:Name|TYPE:Name"
+    # key built from both labels, sorted, so the manifest doesn't need to
+    # know or care which side of the pairing each label was originally on --
+    # pairsForEdge doesn't care about e1/e2 order any more than the rest of
+    # this file does).
+    def self.filterToSubsetPairs(edges)
+        wanted = readSubsetPairs
+        edges.select { |e1, e2| wanted[pairLabelKey(e1.trainer_data, e2.trainer_data)] }
+    end
+
+    def self.pairLabelKey(t1, t2)
+        [trainerLabel(t1), trainerLabel(t2)].sort.join("|")
+    end
+
+    def self.readSubsetPairs
+        raise "Subset pairs file not found: #{SUBSET_PAIRS_PATH}" unless File.exist?(SUBSET_PAIRS_PATH)
+        wanted = {}
+        File.foreach(SUBSET_PAIRS_PATH) do |line|
+            line = line.strip
+            next if line.empty? || line.start_with?("#")
+            label1, label2 = line.split("\t", 3)
+            wanted[[label1, label2].sort.join("|")] = true
+        end
+        wanted
     end
 
     # Pairing for the curse-stripped format. Classifies every cursed pool
