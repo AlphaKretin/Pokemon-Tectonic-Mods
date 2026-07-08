@@ -111,6 +111,6 @@ module EloTournament
                 end,
             }
         end
-        File.open("Analysis/trainer_card_data.json", "w") { |f| f.write(EloTournament.json_encode(data)) }
+        File.open("Analysis/trainer_data.json", "w") { |f| f.write(EloTournament.json_encode(data)) }
     end
 end
