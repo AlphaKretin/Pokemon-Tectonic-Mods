@@ -9,6 +9,8 @@
 # pokemon-index pool, no fixed roster), so GameData::Trainer.each never
 # yields them in the first place.
 #==============================================================================
+require "digest/md5"
+
 module EloTournament
     PoolEntry = Struct.new(:trainer_data, :party_size, :curse)
 
@@ -58,6 +60,29 @@ module EloTournament
         label = "#{td.trainer_type}:#{td.real_name}"
         label += "##{td.version}" if td.version > 0
         label
+    end
+
+    # Deterministic, content-derived trainer1/trainer2 assignment for a
+    # pairing -- necessary because slot order isn't cosmetic: some battle
+    # mechanics (e.g. speed-tie resolution in pbCalculatePriority) are keyed
+    # to battler slot rather than trainer identity, so which trainer occupies
+    # which slot can change a battle's outcome (see
+    # project_trainer_order_dependence memory). Not Ruby's own Object#hash --
+    # that's randomized per-process (anti-hash-flooding), which would give a
+    # different order every run. MD5 instead, which is stable across
+    # processes/runs and byte-for-byte identical to analysis/order_key.py's
+    # Python port, so both sides independently agree on the same order.
+    #
+    # Hashes the *sorted* label pair once (not hash(A,B) vs hash(B,A)
+    # separately) so there's no asymmetry to compare -- sort first, then let
+    # the hash's parity decide whether to keep that order or flip it.
+    def self.canonicalPairOrder(e1, e2)
+        l1 = trainerLabel(e1.trainer_data)
+        l2 = trainerLabel(e2.trainer_data)
+        lo, hi = l1 <= l2 ? [e1, e2] : [e2, e1]
+        loLabel, hiLabel = [l1, l2].min, [l1, l2].max
+        flip = Digest::MD5.digest("#{loLabel}|#{hiLabel}").bytes.first.even?
+        flip ? [hi, lo] : [lo, hi]
     end
 
     # One-off diagnostic dump (ELO_DUMP_TRAINER_CARD_DATA) for the trainer

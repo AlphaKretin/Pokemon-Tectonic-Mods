@@ -189,6 +189,13 @@ module EloTournament
         else
             allEdges(eligible)
         end
+        # Canonicalize trainer1/trainer2 slot order before any filtering --
+        # see canonicalPairOrder in trainer_pool.rb for why this can't be left
+        # to incidental pool-iteration order. Applied uniformly across every
+        # edge-builder branch above and before the subset filters below, so
+        # full runs, uncursed/sampled runs, and subset reruns all get the
+        # same canonical order for a given pairing.
+        edges = edges.map { |e1, e2| canonicalPairOrder(e1, e2) }
         edges = filterToSubsetTrainers(edges) if SUBSET_TRAINER_LABELS
         edges = filterToSubsetPairs(edges) if SUBSET_PAIRS_PATH
         edges.flat_map { |e1, e2| pairsForEdge(e1, e2) }
@@ -280,12 +287,16 @@ module EloTournament
         edges
     end
 
-    # Curses (CURSE_* policies) now apply to whichever side actually holds
-    # the policy, not just whichever trainer is passed as the battle's
-    # "opponent" slot (see Battle_StartAndEnd.rb's curse-application loop,
-    # which walks both @player and @opponent) -- so direction no longer
-    # matters for any pairing, cursed or not: one battle now exercises
-    # every curse present regardless of which trainer is e1 vs e2.
+    # Curses (CURSE_* policies) apply to whichever side actually holds the
+    # policy, not just whichever trainer is passed as the battle's "opponent"
+    # slot (see Battle_StartAndEnd.rb's curse-application loop, which walks
+    # both @player and @opponent) -- so curse *application* doesn't care
+    # which trainer is e1 vs e2. Slot order still matters for battle
+    # *outcome* though (speed-tie resolution is keyed to battler slot, not
+    # identity -- see project_trainer_order_dependence memory), which is why
+    # buildPairs canonicalizes e1/e2 via canonicalPairOrder before this is
+    # ever called, rather than leaving it to whatever order the edge-builder
+    # produced.
     def self.pairsForEdge(e1, e2)
         [[e1, e2]]
     end
