@@ -269,8 +269,6 @@ if ENV["ELO_TOURNAMENT"]
             EloTournament.saveReplay!
         elsif ENV["ELO_WATCH_REPLAY_NAME"]
             EloTournament.watchReplay!
-        elsif ENV["ELO_RUN_BRACKET"]
-            EloTournament.runBracket!
         elsif ENV["ELO_DUMP_TRAINER_CARD_DATA"]
             EloTournament.dumpTrainerCardData!
         elsif ENV["ELO_DUMP_CURSE_STRIP_DIFF"]
