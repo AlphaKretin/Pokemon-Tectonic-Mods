@@ -18,8 +18,16 @@
 # worth guarding against.
 #==============================================================================
 module EloTournament
-    CUSTOM_TRAINER_RESULTS_PATH = ENV["ELO_CUSTOM_TRAINER_RESULTS_PATH"] || "Analysis/custom_trainer_results.jsonl"
-    CUSTOM_TRAINER_STATUS_PATH  = ENV["ELO_CUSTOM_TRAINER_STATUS_PATH"]  || "Analysis/custom_trainer_status.json"
+    # ELO_TEST_RESULTS_PATH is shared with testSinglePairing!/
+    # testBatchPairings! (tournament.rb) -- same purpose in all three: let
+    # a launcher script point results straight at results/local/ instead
+    # of this shard's own Analysis/, which setup_shards.ps1 -Recompile's
+    # robocopy /MIR silently wipes (learned the hard way: an earlier
+    # version wrote shard<N>/Analysis/custom_trainer_results.jsonl
+    # directly and a routine -Recompile between runs deleted a completed
+    # 555-battle result set).
+    CUSTOM_TRAINER_RESULTS_PATH = ENV["ELO_TEST_RESULTS_PATH"]          || "Analysis/custom_trainer_results.jsonl"
+    CUSTOM_TRAINER_STATUS_PATH  = ENV["ELO_CUSTOM_TRAINER_STATUS_PATH"] || "Analysis/custom_trainer_status.json"
 
     def self.readCompletedCustomTrainerKeys
         keys = {}

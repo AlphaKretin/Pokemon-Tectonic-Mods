@@ -77,8 +77,8 @@ module EloTournament
     # subset would re-fight far more than necessary. Manifest is a plain
     # tab-separated file, one pairing per line (trainer1_label, trainer2_label
     # -- same "TYPE:Name#Version" label format as SUBSET_TRAINER_LABELS),
-    # blank lines and #-comments skipped, matching bracket.rb's
-    # readBracketSeeds convention. Path given via ELO_SUBSET_PAIRS_PATH.
+    # blank lines and #-comments skipped, same convention as
+    # testBatchPairings!'s manifest below. Path given via ELO_SUBSET_PAIRS_PATH.
     SUBSET_PAIRS_PATH = ENV["ELO_SUBSET_PAIRS_PATH"]
 
     # Battles that hit AUTO_TESTING_TURN_TIMEOUT (Battle_StartAndEnd.rb) get
@@ -499,8 +499,17 @@ module EloTournament
     # and seed come from env vars so this can be pointed at whichever
     # pairing is currently under investigation without editing code.
     # Not part of the regular tournament flow -- remove once done.
+    #
+    # Output path is ELO_TEST_RESULTS_PATH -- same env var
+    # runCustomTrainerBattles!/testBatchPairings! use, so a launcher script
+    # can point any of the three straight at results/local/ instead of a
+    # shard's own Analysis/, which setup_shards.ps1 -Recompile's
+    # robocopy /MIR would otherwise silently wipe (see
+    # custom_trainer_battles.rb's header comment for the incident that
+    # motivated this).
     def self.testSinglePairing!
         heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
+        outputPath = ENV["ELO_TEST_RESULTS_PATH"] || "Analysis/single_pairing_test.txt"
         t1 = GameData::Trainer.get(ENV["ELO_TEST_T1_TYPE"].to_sym, ENV["ELO_TEST_T1_NAME"], (ENV["ELO_TEST_T1_VERSION"] || "0").to_i)
         t2 = GameData::Trainer.get(ENV["ELO_TEST_T2_TYPE"].to_sym, ENV["ELO_TEST_T2_NAME"], (ENV["ELO_TEST_T2_VERSION"] || "0").to_i)
         trimPartyByIndices!(t1, ENV["ELO_TEST_T1_PARTY_INDICES"])
@@ -509,7 +518,7 @@ module EloTournament
 
         if ENV["ELO_TEST_PREBATTLE_ONLY"]
             srand(seed)
-            File.open("Analysis/single_pairing_test.txt", "w") { |f| f.write(json_encode({
+            File.open(outputPath, "w") { |f| f.write(json_encode({
                 pre_battle_t1_species: t1.to_trainer.party.map { |p| p.species.to_s },
                 pre_battle_t2_species: t2.to_trainer.party.map { |p| p.species.to_s },
             })) }
@@ -525,7 +534,7 @@ module EloTournament
             { ok: false, error_class: e.class.name, error_message: e.message, backtrace: e.backtrace&.first(60) }
         end
 
-        File.open("Analysis/single_pairing_test.txt", "w") { |f| f.write(json_encode(result)) }
+        File.open(outputPath, "w") { |f| f.write(json_encode(result)) }
     end
 
     # Same diagnostic purpose as testSinglePairing!, but for running many
@@ -534,13 +543,14 @@ module EloTournament
     # ad hoc calibration/regression batches grew past a handful of battles.
     # Manifest is a tab-separated file (one pairing per line: t1Type, t1Name,
     # t1Version, t2Type, t2Name, t2Version, seed, format), path given via
-    # ELO_TEST_BATCH_PAIRINGS. Results stream to
-    # Analysis/batch_pairing_results.jsonl (truncated at the start of the
+    # ELO_TEST_BATCH_PAIRINGS. Results stream to ELO_TEST_RESULTS_PATH (see
+    # testSinglePairing!'s comment on that env var; defaults to
+    # Analysis/batch_pairing_results.jsonl), truncated at the start of the
     # run, then appended one line per pairing so partial progress survives
-    # if a later pairing hangs or crashes the process).
+    # if a later pairing hangs or crashes the process.
     def self.testBatchPairings!
         heuristic = AIBenchmark::HEURISTICS[AI_HEURISTIC_KEY]
-        outputPath = "Analysis/batch_pairing_results.jsonl"
+        outputPath = ENV["ELO_TEST_RESULTS_PATH"] || "Analysis/batch_pairing_results.jsonl"
         File.open(outputPath, "w") {}
 
         File.readlines(ENV["ELO_TEST_BATCH_PAIRINGS"]).each do |line|
