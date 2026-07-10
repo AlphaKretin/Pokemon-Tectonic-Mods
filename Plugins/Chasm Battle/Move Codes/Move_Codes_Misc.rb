@@ -113,10 +113,10 @@ class PokeBattle_Move_ChangeUserMewtwoChoiceOfForm < PokeBattle_Move
     def resolutionChoice(user, replayed_choice)
         if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenForm = rand(2) + 1
-        elsif !user.humanControlled? # Trainer AI
-            @chosenForm = 2 # Always chooses mega mind form
         elsif !replayed_choice.nil?
             @chosenForm = replayed_choice
+        elsif !user.humanControlled? # Trainer AI
+            @chosenForm = 2 # Always chooses mega mind form
         else
             form1Name = GameData::Species.get_species_form(:MEWTWO,1).form_name
             form2Name = GameData::Species.get_species_form(:MEWTWO,2).form_name
@@ -397,10 +397,10 @@ class PokeBattle_Move_ChangeUserDeoxusChoiceOfForm < PokeBattle_Move
     def resolutionChoice(user, replayed_choice)
         if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenForm = rand(3) + 1
-        elsif !user.humanControlled? # Trainer AI
-            @chosenForm = 2 # Always chooses defense form
         elsif !replayed_choice.nil?
             @chosenForm = replayed_choice
+        elsif !user.humanControlled? # Trainer AI
+            @chosenForm = 2 # Always chooses defense form
         else
             form1Name = GameData::Species.get_species_form(:DEOXYS,1).form_name
             form2Name = GameData::Species.get_species_form(:DEOXYS,2).form_name
@@ -694,6 +694,8 @@ class PokeBattle_Move_UseChoiceOfElementalFangs < PokeBattle_Move
 
         if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenMove = @validMoves.sample
+        elsif !replayed_choice.nil?
+            @chosenMove = replayed_choice
         elsif !user.humanControlled? # Trainer AI
             @chosenMove = @validMoves[0]
         else
@@ -739,10 +741,10 @@ class PokeBattle_Move_UseChoiceOfElementalCrunches < PokeBattle_Move
 
         if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenMove = @validMoves.sample
-        elsif !user.humanControlled? # Trainer AI
-            @chosenMove = @validMoves[0]
         elsif !replayed_choice.nil?
             @chosenMove = replayed_choice
+        elsif !user.humanControlled? # Trainer AI
+            @chosenMove = @validMoves[0]
         else
             chosenIndex = @battle.scene.pbChooseWithThinkingLoop(_INTL("Which move should {1} use?", user.pbThis(true)),validMoveNames)
             @chosenMove = @validMoves[chosenIndex]

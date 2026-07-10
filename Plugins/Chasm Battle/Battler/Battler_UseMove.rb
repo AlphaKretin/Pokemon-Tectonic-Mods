@@ -231,7 +231,21 @@ class PokeBattle_Battler
         return unless move # if move was not chosen somehow
 
         # Make extra move choices
-        @recorded_choice = move.resolutionChoice(self, @replayed_choice)
+        # NOTE: resolutionChoice can recurse (Selective Memory, Metronome,
+        # Sleep Talk, etc. call pbUseMoveSimple -> pbUseMove again for the
+        # move they end up calling), which would clobber
+        # @battle.recorded_choice with the called move's own (usually nil)
+        # resolutionChoice before the caller (Battle_Phase_Attack.rb) got a
+        # chance to read it -- confirmed live: Selective Memory choosing
+        # :ENERGYBALL got overwritten by Energy Ball's own nil resolutionChoice
+        # by the time registerRecordedChoice ran post-pbProcessTurn. Registering
+        # immediately here, gated on !specialUsage (true for pbUseMoveSimple's
+        # called moves and in-progress multi-turn continuations), captures the
+        # top-level choice before any nested call can stomp it.
+        @battle.diagLog("resolutionChoice", "pbUseMove: user=#{pbThis} move=#{move.name} humanControlled=#{humanControlled?} replayed_choice_in=#{@battle.replayed_choice.inspect}")
+        @battle.recorded_choice = move.resolutionChoice(self, @battle.replayed_choice)
+        @battle.diagLog("resolutionChoice", "pbUseMove: recorded_choice_out=#{@battle.recorded_choice.inspect}")
+        @battle.registerRecordedChoice(@index) unless specialUsage
 
         # Subtract PP
         if !specialUsage && !pbReducePP(move)

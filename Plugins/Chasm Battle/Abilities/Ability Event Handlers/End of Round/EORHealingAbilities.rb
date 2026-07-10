@@ -165,13 +165,17 @@ BattleHandlers::EORHealingAbility.add(:DIRECTCURRENT,
       battler.showMyAbilitySplash(ability)
       battler.tryLowerStat(:SPECIAL_ATTACK, battler)
       choices = [_INTL("Speed"),_INTL("Healing")]
+      replayed = battle.replayedAbilityChoice
       if battle.autoTesting && battle.autoTestingRandomization
         choice = rand(1)
+      elsif !replayed.nil?
+        choice = replayed
       elsif !battler.humanControlled? # Trainer AI
         choice = 0
       else
         choice = battle.scene.pbChooseWithThinkingLoop(_INTL("Where to direct power?"),choices)
       end
+      battle.registerRecordedAbilityChoice(choice)
       if choice == 0
         battler.tryRaiseStat(:SPEED, battler)
       else

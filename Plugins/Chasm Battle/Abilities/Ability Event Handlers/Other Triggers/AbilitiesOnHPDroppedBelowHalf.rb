@@ -100,13 +100,17 @@ BattleHandlers::AbilityOnHPDroppedBelowHalf.add(:VOIDWARRANTY,
       next unless formChoices.length > 0
       
       battle.pbShowAbilitySplash(battler, ability)
+      replayed = battle.replayedAbilityChoice
       if battle.autoTesting && battle.autoTestingRandomization
         choiceIndex = rand(formChoices.length)
+      elsif !replayed.nil?
+        choiceIndex = replayed
       elsif !battler.humanControlled? # Trainer AI
         choiceIndex = 0
       else
         choiceIndex = battle.scene.pbChooseWithThinkingLoop(_INTL("Which form should {1} take?", battler.name), choiceNames)
       end
+      battle.registerRecordedAbilityChoice(choiceIndex)
       battler.pbChangeForm(formChoices[choiceIndex], _INTL("{1} takes on a new machine!", battler.pbThis))
       battler.refreshBattleMoves
       battle.pbHideAbilitySplash(battler)

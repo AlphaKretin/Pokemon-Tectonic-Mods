@@ -171,10 +171,10 @@ class PokeBattle_Move_UseChoiceOf3RandomNonSignatureStatusMoves < PokeBattle_Mov
 
         if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenMove = validMoves.sample
-        elsif !user.humanControlled? # Trainer AI
-            @chosenMove = validMoves[0]
         elsif !replayed_choice.nil?
             @chosenMove = replayed_choice
+        elsif !user.humanControlled? # Trainer AI
+            @chosenMove = validMoves[0]
         else
             chosenIndex = @battle.scene.pbChooseWithThinkingLoop(_INTL("Which move should {1} use?", user.pbThis(true)),validMoveNames)
             @chosenMove = validMoves[chosenIndex]
@@ -296,12 +296,13 @@ class PokeBattle_Move_UseChoiceOf3RandomNonSignatureNonPsychicDamagingMoves < Po
             end
         end
 
+        @battle.diagLog("resolutionChoice", "SelectiveMemory: user=#{user.pbThis} validMoves=#{validMoves.inspect} replayed_choice=#{replayed_choice.inspect} humanControlled=#{user.humanControlled?} autoTesting=#{@battle.autoTesting} autoTestingRandomization=#{@battle.autoTestingRandomization}")
         if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenMove = validMoves.sample
-        elsif !user.humanControlled? # Trainer AI
-            @chosenMove = validMoves[0]
         elsif !replayed_choice.nil?
             @chosenMove = replayed_choice
+        elsif !user.humanControlled? # Trainer AI
+            @chosenMove = validMoves[0]
         else
             chosenIndex = @battle.scene.pbChooseWithThinkingLoop(_INTL("Which move should {1} use?", user.pbThis(true)),validMoveNames)
             @chosenMove = validMoves[chosenIndex]

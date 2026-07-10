@@ -160,10 +160,10 @@ class PokeBattle_Move_UseChoiceOf3LastUsedMoves < PokeBattle_Move
         elsif moveChoices.length > 1
             if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenMoveID = moveChoices.sample
-            elsif !user.humanControlled? # Trainer AI
-                @chosenMoveID = moveChoices[0]
             elsif !replayed_choice.nil?
                 @chosenMoveID = replayed_choice
+            elsif !user.humanControlled? # Trainer AI
+                @chosenMoveID = moveChoices[0]
             else
                 chosenIndex = @battle.scene.pbChooseWithThinkingLoop(_INTL("Which move should {1} use?", user.pbThis(true)),moveNames)
                 @chosenMoveID = moveChoices[chosenIndex]

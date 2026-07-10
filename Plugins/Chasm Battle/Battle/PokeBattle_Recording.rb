@@ -59,6 +59,32 @@ module PokeBattle_BattleRecorder
 	attr_accessor :type #Battle type. 0 for wild, 1 for trainer, 2 for avatar
 
 	attr_accessor :recorded_choices #Array of the move choices made
+	# Array of resolutionChoice values (Selective Memory's move roll, Fling's
+	# item, etc.), same [turn][battlerIndex][commandPhase] shape as
+	# recorded_choices but tracked completely separately -- it used to be
+	# appended onto the end of each recorded_choices tuple (index 4), but
+	# Battle_Action_AttacksPriority.rb's pbCalculatePriority *also* writes a
+	# move's priority bracket into that same index 4 on the live @choices
+	# array every attack phase. During recording this was invisible (each
+	# recorded_choices tuple is a clone taken before pbCalculatePriority
+	# runs), but a stale priority value from a *previous* turn's attack phase
+	# lingering on the reused @choices slot could get cloned into the *next*
+	# turn's recorded_choices tuple before that turn's own resolutionChoice
+	# was ever pushed -- confirmed via diagLog: turn 1's "before" state
+	# already had a leftover 0 in slot 4 from turn 0's priority calc, so
+	# turn 1's real resolutionChoice landed in slot 5 instead of slot 4,
+	# desyncing replay's index-4 read. Giving resolutionChoice its own
+	# storage removes the shared slot instead of working around it.
+	attr_accessor :recorded_resolution_choices
+	# FIFO queue of misc human-facing ability choices with no VS Recorder
+	# support at all previously (Clumsy Kinesis' item drop, Costume Change/
+	# Void Warranty/False Front's form or type pick, Direct Current's
+	# stat/healing split, Juggling's ally target) -- these fire at
+	# deterministic points given identical battle state, same as switch-ins,
+	# so a simple push-during-record/shift-during-replay queue (no turn or
+	# command-phase key needed) is enough; see recorded_switches/
+	# pbSwitchInBetween below for the existing precedent this follows.
+	attr_accessor :recorded_ability_choices
 	attr_accessor :recorded_switches #Array of switches made
 	attr_accessor :random #Array of the random numbers used in the battle
 
@@ -83,6 +109,8 @@ module PokeBattle_BattleRecorder
 		Thread.current[:current_pbrandom_battle] = self
 		super(scene, playerParty, foeParty, playerTrainers, foeTrainers)
 		@recorded_choices = []
+		@recorded_resolution_choices = []
+		@recorded_ability_choices = []
 		@recorded_switches = []
 		@random = []
 		@diag_logs = Hash.new { |h, k| h[k] = [] }
@@ -146,6 +174,8 @@ module PokeBattle_BattleRecorder
 	def pbCommandPhase
 		@recorded_choices.push([]) #Add turn array
     (maxBattlerIndex + 1).times { |i| @recorded_choices[@turnCount].push([])} #Add array for each battler
+		@recorded_resolution_choices.push([])
+    (maxBattlerIndex + 1).times { |i| @recorded_resolution_choices[@turnCount].push([])}
 		super
 		recordChoices
   end
@@ -157,6 +187,7 @@ module PokeBattle_BattleRecorder
 
 	def recordSkippedTurn
 		@recorded_choices.push([])
+		@recorded_resolution_choices.push([])
 	end
 
 	def pbStartBattle
@@ -186,6 +217,7 @@ module PokeBattle_BattleRecorder
 	end
 
 	def pbEndOfBattle
+		diagLog("resolutionChoice", "pbEndOfBattle: recorded_choices[0]=#{@recorded_choices[0].inspect} recorded_resolution_choices[0]=#{@recorded_resolution_choices[0].inspect}")
 		saveBattle("Last battle") if @save_battle
 		saveDiagLogs
 		Thread.current[:current_pbrandom_battle] = nil
@@ -220,10 +252,20 @@ module PokeBattle_BattleRecorder
 		ret
 	end
 
+	# See recorded_ability_choices above. Called with the final chosen value
+	# (whatever branch computed it -- autoTesting sample, AI default, or
+	# human pick) so the queue preserves call order regardless of who chose.
+	def registerRecordedAbilityChoice(value)
+		diagLog("resolutionChoice", "registerRecordedAbilityChoice value=#{value.inspect}")
+		@recorded_ability_choices.push(value)
+		value
+	end
+
 	def registerRecordedChoice(index)
+		diagLog("resolutionChoice", "registerRecordedChoice turn=#{@turnCount} index=#{index} commandPhasesThisRound=#{@commandPhasesThisRound} recorded_choice=#{@recorded_choice.inspect}")
     	return if @recorded_choices[@turnCount][index].length < @commandPhasesThisRound
-    	@recorded_choices[@turnCount][index][@commandPhasesThisRound-1] ||= []
-    	@recorded_choices[@turnCount][index][@commandPhasesThisRound-1].push(@recorded_choice)
+    	@recorded_resolution_choices[@turnCount][index][@commandPhasesThisRound-1] = @recorded_choice
+		diagLog("resolutionChoice", "registerRecordedChoice turn=#{@turnCount} index=#{index} after=#{@recorded_resolution_choices[@turnCount][index].inspect}")
 	end
 
 	def registerRules
@@ -249,6 +291,8 @@ module PokeBattle_BattleRecorder
 		return Marshal.dump({
 			:type => @type,
 			:recorded_choices => @recorded_choices,
+			:recorded_resolution_choices => @recorded_resolution_choices,
+			:recorded_ability_choices => @recorded_ability_choices,
 			:recorded_switches => @recorded_switches,
 			:random => @random,
 			:player_info => @player_info,
@@ -346,6 +390,8 @@ module PokeBattle_BattleReplayer
 		@showAnims                 = battle[:showAnims]
 		@level_cap                 = battle[:level_cap]
 		@recorded_choices          = battle[:recorded_choices]
+		@recorded_resolution_choices = battle[:recorded_resolution_choices]
+		@recorded_ability_choices  = battle[:recorded_ability_choices]
 		@recorded_switches         = battle[:recorded_switches]
 		@random                    = battle[:random]
 		@save_battle               = false
@@ -380,6 +426,7 @@ module PokeBattle_BattleReplayer
 		# of appending to a stale file from a previous watch.
 		@diag_truncated = {}
 
+		diagLog("resolutionChoice", "PokeBattle_BattleReplayer#initialize: recorded_choices[0]=#{@recorded_choices[0].inspect}")
 	end
 
 	def pbRandom(x)
@@ -425,7 +472,14 @@ module PokeBattle_BattleReplayer
 				@choices.push([])
 				next
 			end
-			@choices.push(c[0])
+			# .clone here so @choices stays the live per-turn working array and
+			# never aliases @recorded_choices -- e.g. pbCalculatePriority
+			# (Battle_Action_AttacksPriority.rb) writes a move's priority
+			# bracket into @choices[b.index][4] every attack phase, which
+			# would otherwise mutate the archived recorded_choices tuple in
+			# place. recordChoices does the equivalent on the recording side
+			# (c_clone = c.clone) for the same reason.
+			@choices.push(c[0].clone)
 			next if @choices[-1].nil?
 			currentBattlerIndex = @choices.length - 1
 			if @choices[-1][0] == :UseMove
@@ -438,6 +492,7 @@ module PokeBattle_BattleReplayer
 				pbRun(currentBattlerIndex)
 			end
 		end
+		diagLog("resolutionChoice", "pbCommandPhase(Replayer) end: recorded_choices[0]=#{@recorded_choices[0].inspect}")
   end
 
 	def pbExtraCommandPhase
@@ -448,7 +503,7 @@ module PokeBattle_BattleReplayer
 				@choices.push([])
 				next
 			end
-			@choices.push(c[@commandPhasesThisRound]) # Not decremented since commandPhasesThisRound is incremented AFTER the command phase
+			@choices.push(c[@commandPhasesThisRound].clone) # Not decremented since commandPhasesThisRound is incremented AFTER the command phase -- see pbCommandPhase above for why .clone is load-bearing
 			next if @choices[-1].nil?
 			currentBattlerIndex = @choices.length - 1
 			if @choices[-1][0] == :UseMove
@@ -462,14 +517,9 @@ module PokeBattle_BattleReplayer
 	end
 
 	def registerReplayedChoice(index)
-		choice = @recorded_choices[@turnCount][index]
-		if choice.nil?
-			@replayed_choice = nil
-		elsif choice.length < 5
-			@replayed_choice = @recorded_choices[@turnCount][index][4]
-		else
-			@replayed_choice = nil
-		end
+		resolutionChoices = @recorded_resolution_choices[@turnCount][index]
+		@replayed_choice = resolutionChoices ? resolutionChoices[@commandPhasesThisRound - 1] : nil
+		diagLog("resolutionChoice", "registerReplayedChoice turn=#{@turnCount} index=#{index} commandPhasesThisRound=#{@commandPhasesThisRound} resolutionChoices=#{resolutionChoices.inspect} replayed_choice=#{@replayed_choice.inspect}")
 	end
 
 	# Every switch-in decision is recorded now (see the recorder-side
@@ -481,11 +531,19 @@ module PokeBattle_BattleReplayer
 		@recorded_switches.shift
 	end
 
+	def replayedAbilityChoice
+		value = @recorded_ability_choices.shift
+		diagLog("resolutionChoice", "replayedAbilityChoice value=#{value.inspect}")
+		value
+	end
+
 end
 
 class PokeBattle_Battle
 	def registerRecordedChoice(index); end
 	def registerReplayedChoice(index); end
+	def registerRecordedAbilityChoice(value); value; end
+	def replayedAbilityChoice; nil; end
 	def registerRules; end
 	def recordSkippedTurn; end
 	def logPriorityOrder(line); end

@@ -31,10 +31,10 @@ class PokeBattle_Move_AttackOneTurnLaterChooseIceFireElectricType < PokeBattle_F
         elsif validTypes.length > 1
             if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenType = validTypes.sample
-            elsif !user.humanControlled? # Trainer AI
-                @chosenType = validTypes[0]
             elsif !replayed_choice.nil?
                 @chosenType = replayed_choice
+            elsif !user.humanControlled? # Trainer AI
+                @chosenType = validTypes[0]
             else
                 chosenIndex = @battle.scene.pbChooseWithThinkingLoop(_INTL("Which type should {1} launch?", user.pbThis(true)),validTypeNames)
                 @chosenType = validTypes[chosenIndex]

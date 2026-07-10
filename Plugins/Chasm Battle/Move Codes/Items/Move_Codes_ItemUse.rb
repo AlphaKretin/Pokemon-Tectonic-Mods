@@ -46,10 +46,10 @@ class PokeBattle_Move_GiftItem < PokeBattle_Move
         elsif validItems.length > 1
             if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenItem = validItems.sample
-            elsif !user.humanControlled? # Trainer AI
-                @chosenItem = validItems[0]
             elsif !replayed_choice.nil?
                 @chosenItem = replayed_choice
+            elsif !user.humanControlled? # Trainer AI
+                @chosenItem = validItems[0]
             else
                 chosenIndex = @battle.scene.pbChooseWithThinkingLoop(_INTL("Which item should {1} give away?", user.pbThis(true)),validItemNames)
                 @chosenItem = validItems[chosenIndex]
@@ -178,10 +178,10 @@ class PokeBattle_Move_Fling < PokeBattle_Move
         elsif validItems.length > 1
             if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenItem = validItems.sample
-            elsif !user.humanControlled? # Trainer AI
-                @chosenItem = validItems[0]
             elsif !replayed_choice.nil?
                 @chosenItem = replayed_choice
+            elsif !user.humanControlled? # Trainer AI
+                @chosenItem = validItems[0]
             else
                 chosenIndex = @battle.scene.pbChooseWithThinkingLoop(_INTL("Which item should {1} fling?", user.pbThis(true)),validItemNames)
                 @chosenItem = validItems[chosenIndex]
@@ -335,10 +335,10 @@ class PokeBattle_Move_NaturalGift < PokeBattle_Move
         elsif validItems.length > 1
             if @battle.autoTesting && @battle.autoTestingRandomization
                 @chosenItem = validItems.sample
-            elsif !user.humanControlled? # Trainer AI
-                @chosenItem = validItems[0]
             elsif !replayed_choice.nil?
                 @chosenItem = replayed_choice
+            elsif !user.humanControlled? # Trainer AI
+                @chosenItem = validItems[0]
             else
                 chosenIndex = @battle.scene.pbChooseWithThinkingLoop(_INTL("Which item should {1} use?", user.pbThis(true)),validItemNames)
                 @chosenItem = validItems[chosenIndex]

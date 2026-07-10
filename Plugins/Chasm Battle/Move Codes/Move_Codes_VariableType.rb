@@ -115,6 +115,8 @@ class PokeBattle_Move_TechnoBlast < PokeBattle_Move_TypeDependsOnUserSpecialItem
         drivesToChooseFrom = @itemTypes.keys
         if @battle.autoTesting && @battle.autoTestingRandomization
             @chosenDrive = drivesToChooseFrom.sample
+        elsif !replayed_choice.nil?
+            @chosenDrive = replayed_choice
         elsif !user.humanControlled? # Trainer AI
             @chosenDrive = drivesToChooseFrom[0]
         else

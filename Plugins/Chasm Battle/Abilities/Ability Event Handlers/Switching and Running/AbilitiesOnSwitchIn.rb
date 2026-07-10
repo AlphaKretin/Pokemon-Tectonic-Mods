@@ -1415,8 +1415,11 @@ BattleHandlers::AbilityOnSwitchIn.add(:FALSEFRONT,
       if validTypes.length == 1
           chosenType = validTypes[0]
       elsif validTypes.length > 1
+          replayed = battle.replayedAbilityChoice
           if battle.autoTesting && battle.autoTestingRandomization
               chosenType = validTypes.sample
+          elsif !replayed.nil?
+              chosenType = replayed
           elsif !battler.humanControlled? # Trainer AI
               validTypes.each do |type|
                 next unless battler.pbHasAttackingType?(type)
@@ -1426,6 +1429,7 @@ BattleHandlers::AbilityOnSwitchIn.add(:FALSEFRONT,
           else
             chosenType = validTypes[battle.scene.pbChooseWithThinkingLoop(_INTL("Which type should {1} fake?", battler.pbThis(true)), validTypeNames)]
           end
+          battle.registerRecordedAbilityChoice(chosenType)
       end
       battler.applyEffect(:Type3,chosenType)
       battler.hideMyAbilitySplash

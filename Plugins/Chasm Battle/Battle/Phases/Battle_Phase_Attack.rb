@@ -171,7 +171,6 @@ class PokeBattle_Battle
                 next if b.movedThisRound?
                 registerReplayedChoice(b.index)
                 advance = b.pbProcessTurn(@choices[b.index])
-                registerRecordedChoice(b.index)
                 break if advance
             end
             return if @decision > 0
@@ -183,7 +182,6 @@ class PokeBattle_Battle
                 next if b.movedThisRound?
                 registerReplayedChoice(b.index)
                 advance = b.pbProcessTurn(@choices[b.index])
-                registerRecordedChoice(b.index)
                 break if advance
             end
             return if @decision > 0
@@ -200,7 +198,6 @@ class PokeBattle_Battle
                     next if b.movedThisRound?
                     registerReplayedChoice(b.index)
                     advance = b.pbProcessTurn(@choices[b.index])
-                    registerRecordedChoice(b.index)
                     break
                 end
                 break if advance || !moreQuash
@@ -224,6 +221,7 @@ class PokeBattle_Battle
     # Attack phase
     #=============================================================================
     def pbAttackPhase
+        diagLog("resolutionChoice", "pbAttackPhase start: recorded_choices[0]=#{@recorded_choices[0].inspect}") if @recorded_choices
         @scene.pbBeginAttackPhase
         resetAttackPhaseEffects
         PBDebug.log("")
@@ -232,6 +230,7 @@ class PokeBattle_Battle
         # Perform actions
         return if attackPhaseNonMoveActions
         speedAffectingTriggers
+        diagLog("resolutionChoice", "pbAttackPhase pre-Moves: recorded_choices[0]=#{@recorded_choices[0].inspect}") if @recorded_choices
         pbAttackPhaseMoves
         endOfAttackPhase
     end
