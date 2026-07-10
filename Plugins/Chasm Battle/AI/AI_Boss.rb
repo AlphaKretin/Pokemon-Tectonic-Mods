@@ -205,7 +205,11 @@ class PokeBattle_AI_Boss
     end
 
     def getFallbackMove
-        return @fallback.sample
+        # rand, not .sample -- an AI planning fallback, must stay off the
+        # deterministic pbRandom/Array#sample queue (see PokeBattle_AI#
+        # pbAIRandomSample's comment).
+        return nil if @fallback.empty?
+        return @fallback[rand(@fallback.length)]
     end
 
     def decidedOnMove(move, user, targets, battle)

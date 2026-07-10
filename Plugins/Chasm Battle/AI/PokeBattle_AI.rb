@@ -19,6 +19,19 @@ class PokeBattle_AI
 
     def pbAIRandom(x); return rand(x); end
 
+    # AI planning decisions (which move/switch to fall back to when scoring
+    # is a tie or has failed) must stay off the deterministic pbRandom/
+    # Array#sample queue -- that queue is battle-mechanics-only (accuracy,
+    # crits, multi-hit counts, ...), and the final choice a battler acts on
+    # always comes from the recorded/replayed choice regardless of what the
+    # AI computed here (see PokeBattle_Recording.rb), so there's nothing to
+    # keep synced. Use this instead of .sample anywhere inside AI
+    # decision-making code.
+    def pbAIRandomSample(array)
+        return nil if array.empty?
+        return array[pbAIRandom(array.length)]
+    end
+
     def pbStdDev(choices)
         sum = 0
         n = 0
