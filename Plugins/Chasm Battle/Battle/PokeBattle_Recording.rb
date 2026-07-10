@@ -1,5 +1,61 @@
+# Generic monkeypatch making Array#sample deterministic/replayable for any
+# battle whose pbRandom is authoritative (recorded/replayed battles below;
+# also used by Cable Club multiplayer battles -- see
+# Plugins/Chasm Cable Club/[001] Cable Club Client/003_Battle_CableClub.rb,
+# which requires this plugin and so loads after it). Array#sample draws
+# from Ruby's own global RNG, invisible to pbRandom's record/replay
+# interception below -- a multi-hit move's hit count
+# (Move_Codes_Multihit.rb's hitChances.sample) rolled this way during
+# recording is never logged into @random, and during replay rolls an
+# independent, unsynced value instead of replaying the recorded one,
+# instantly diverging record vs replay for the rest of the battle. Routing
+# Array#sample itself through whichever battle is current fixes every call
+# site at once (Metronome, Assist, Sleep Talk, item-eating abilities, ...),
+# not just multi-hit moves.
+module DeterministicSample
+	def self.included(base)
+		base.prepend(InstanceMethods)
+	end
+
+	module InstanceMethods
+		def initialize(*args)
+			super
+			DeterministicSample.override_array_sample
+		end
+	end
+
+	def self.override_array_sample
+		return if Array.method_defined?(:original_ruby_sample)
+		Array.class_eval do
+			alias_method :original_ruby_sample, :sample
+
+			define_method :sample do |n = nil, random: nil|
+				battle = Thread.current[:current_pbrandom_battle]
+				return original_ruby_sample(n, random: random) unless battle&.respond_to?(:pbRandom)
+				if n.nil?
+					return nil if empty?
+					self[battle.pbRandom(length)]
+				else
+					return [] if n <= 0 || empty?
+					n = [n, length].min
+					result = []
+					each_with_index do |item, index|
+						if index < n
+							result << item
+						else
+							j = battle.pbRandom(index + 1)
+							result[j] = item if j < n
+						end
+					end
+					result
+				end
+			end
+		end
+	end
+end
+
 module PokeBattle_BattleRecorder
-	
+
 	attr_accessor :type #Battle type. 0 for wild, 1 for trainer, 2 for avatar
 
 	attr_accessor :recorded_choices #Array of the move choices made
@@ -23,6 +79,8 @@ module PokeBattle_BattleRecorder
 	attr_accessor :battle_rules
 
 	def initialize(scene, playerParty, foeParty, playerTrainers, foeTrainers, type)
+		DeterministicSample.override_array_sample
+		Thread.current[:current_pbrandom_battle] = self
 		super(scene, playerParty, foeParty, playerTrainers, foeTrainers)
 		@recorded_choices = []
 		@recorded_switches = []
@@ -130,6 +188,7 @@ module PokeBattle_BattleRecorder
 	def pbEndOfBattle
 		saveBattle("Last battle") if @save_battle
 		saveDiagLogs
+		Thread.current[:current_pbrandom_battle] = nil
 		super
 	end
 

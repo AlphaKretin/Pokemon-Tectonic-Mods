@@ -1,67 +1,10 @@
-# super ugly convoluted vibe coded hack to make Array.sample predictable
-# but i tested it and it seems to work - LunaFlare
-module DeterministicSample
-  def self.included(base)
-    base.prepend(InstanceMethods)
-  end
-
-  module InstanceMethods
-    def initialize(*args)
-      super
-      override_array_sample
-    end
-
-    private
-
-    def override_array_sample
-      Array.class_eval do
-        unless method_defined?(:cable_club_sample)
-          alias_method :original_ruby_sample, :sample
-          
-          define_method :cable_club_sample do |n = nil, random: nil|
-            # Get the current battle instance dynamically
-            battle = Thread.current[:current_cable_club_battle]
-            return original_ruby_sample(n, random: random) unless battle&.respond_to?(:pbRandom)
-            if n.nil?
-              # Sample single element
-              return nil if empty?
-              self[battle.pbRandom(length)]
-            else
-              # Sample n elements (without replacement by default)
-              return [] if n <= 0 || empty?
-              n = [n, length].min
-              
-              # Use reservoir sampling algorithm with pbRandom
-              result = []
-              self.each_with_index do |item, index|
-                if index < n
-                  result << item
-                else
-                  # Random index from 0 to index (inclusive)
-                  j = battle.pbRandom(index + 1)
-                  if j < n
-                    result[j] = item
-                  end
-                end
-              end
-              result
-            end
-          end
-          
-          define_method :sample do |n = nil, random: nil|
-            # Use deterministic sample if we have access to the battle instance
-            battle = Thread.current[:current_cable_club_battle]
-            if battle&.respond_to?(:pbRandom)
-              cable_club_sample(n, random: random)
-            else
-              original_ruby_sample(n, random: random)
-            end
-          end
-        end
-      end
-    end
-  end
-end
+# Array#sample determinism hack (originally "super ugly convoluted vibe
+# coded hack to make Array.sample predictable, but i tested it and it seems
+# to work" - LunaFlare) now lives as the shared DeterministicSample module
+# in Plugins/Chasm Battle/Battle/PokeBattle_Recording.rb (this plugin
+# Requires Chasm Battle, so it's already loaded by the time this file
+# runs), generalized so recorded/replayed battles get the same fix for
+# multi-hit move hit counts and other .sample call sites.
 
 class PokeBattle_Battle
   attr_reader :client_id
@@ -89,7 +32,7 @@ class PokeBattle_CableClub < PokeBattle_Battle
     # player.party = player_party
     player = $Trainer
     opponent.party = opponent_party
-    Thread.current[:current_cable_club_battle] = self
+    Thread.current[:current_pbrandom_battle] = self
     super(scene, player_party, opponent_party, [player], [opponent])
     @battleAI  = PokeBattle_CableClub_AI.new(self)
     @battleRNG = Random.new(seed)
@@ -213,7 +156,7 @@ class PokeBattle_CableClub < PokeBattle_Battle
       @rngLogFile.close
       @rngLogFile = nil
     end
-    Thread.current[:current_cable_club_battle] = nil
+    Thread.current[:current_pbrandom_battle] = nil
     super
   end
 
