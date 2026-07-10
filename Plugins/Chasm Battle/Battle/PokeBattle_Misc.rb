@@ -301,8 +301,12 @@ class PokeBattle_Battle
         return @commandPhasesThisRound.zero?
     end
 
+    # Recording is unconditional -- query-side gating (Battler_AI_Helpers.rb's
+    # aiInfoGuessRequired?) already bypasses this cache entirely for battlers
+    # whose info is already fully known, so recording a non-player battler's
+    # reveals here is harmless in real gameplay and required for autoTesting
+    # (where both sides need their opponent's reveals recorded symmetrically).
     def aiLearnsAbility(battler, ability)
-        return unless battler.pbOwnedByPlayer?
         @knownAbilities[battler.pokemon.personalID] ||= []
         return if @knownAbilities[battler.pokemon.personalID].include?(ability)
         @knownAbilities[battler.pokemon.personalID].push(ability)
@@ -332,7 +336,6 @@ class PokeBattle_Battle
     end
 
     def aiLearnsItem(battler, item)
-        return unless battler.pbOwnedByPlayer?
         @knownItems[battler.pokemon.personalID] ||= []
         return if @knownItems[battler.pokemon.personalID].include?(item)
         @knownItems[battler.pokemon.personalID].push(item)
@@ -354,7 +357,6 @@ class PokeBattle_Battle
     end
 
     def aiTransformed(battler)
-        return unless battler.pbOwnedByPlayer?
         return if battler.boss?
         personalID = battler.pokemon.personalID
         @initialMoveGuess[personalID]      = []
@@ -364,7 +366,6 @@ class PokeBattle_Battle
     end
 
     def aiSeesMove(battler, moveID)
-        return unless battler.pbOwnedByPlayer?
         return if battler.boss?
         moveID = moveID.id if moveID.is_a?(PokeBattle_Move)
 

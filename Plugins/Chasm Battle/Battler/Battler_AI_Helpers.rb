@@ -123,10 +123,26 @@ class PokeBattle_Battler
         end
     end
 
+    # Whether the AI must guess at this battler's hidden info (moves/ability/
+    # item) rather than see it directly. In real gameplay this is exactly
+    # "is this battler the human" (pbOwnedByPlayer?), since there's only one
+    # AI framework reasoning about at most one hidden side. Under autoTesting
+    # every battler is AI-controlled regardless of slot, so pbOwnedByPlayer?
+    # no longer means "human" -- key off which side is currently deciding
+    # instead: guess about the opponent, see your own side directly. Mirrors
+    # the selfAssessment fix already applied to highestMoveScoreForBattler
+    # (AI_Switch.rb) for the same slot-vs-role mismatch.
+    def aiInfoGuessRequired?
+        return pbOwnedByPlayer? unless @battle.autoTesting
+        decider = @battle.battleAI.currentDecidingBattler
+        return false unless decider
+        return opposes?(decider)
+    end
+
     # Dispatcher used by helpers that can be called on either side
     def eachAIKnownMove
         return if movesHiddenByIllusion?
-        if pbOwnedByPlayer?
+        if aiInfoGuessRequired?
             eachGuessedMove { |m| yield m }
         else
             getMoves.each { |m| next unless m; yield m }
@@ -135,7 +151,7 @@ class PokeBattle_Battler
 
     def movesHiddenByIllusion?
         return false unless effectActive?(:Illusion)
-        return false unless pbOwnedByPlayer?  
+        return false unless aiInfoGuessRequired?
         return true unless aiKnowsIllusion?
         return false
     end
@@ -475,7 +491,7 @@ class PokeBattle_Battler
     end
 
     def aiKnowsAbility?(checkAbility)
-        return true unless pbOwnedByPlayer?
+        return true unless aiInfoGuessRequired?
         return true if hasActiveItemAI?(:FRAGILELOCKET)
         if checkAbility.is_a?(Array)
             checkAbility.each do |specificAbility|
@@ -509,7 +525,7 @@ class PokeBattle_Battler
     end
 
     def aiKnowsItem?(checkItem)
-        return true unless pbOwnedByPlayer?
+        return true unless aiInfoGuessRequired?
         if checkItem.is_a?(Array)
             checkItem.each do |specificItem|
                 return true if @addedItems.include?(specificItem)
@@ -628,7 +644,7 @@ class PokeBattle_Battler
     ###############################################################################
     # Used as a flat value
     def levelNerfSwitch(intensity = 1.0)
-        return 0 if pbOwnedByPlayer?
+        return 0 if humanControlled?
         levelPenalty = levelNerfIntensity(intensity)
         PBDebug.log("[STAY-IN RATING][LEVEL NERF] #{pbThis} (#{index}) is penalizing switching (+#{levelPenalty.round})")
         return levelPenalty
@@ -636,7 +652,7 @@ class PokeBattle_Battler
 
     # Used as a multiplier
     def levelNerfDamage(intensity = 1.0)
-        return 1 if pbOwnedByPlayer?
+        return 1 if humanControlled?
         levelPenalty = levelNerfIntensity(intensity)
         levelPenalty = levelPenalty / 5 / 10 + 1.0
         PBDebug.log"[LEVEL NERF] Adjusted damage score by (+#{((levelPenalty - 1) * 100).round})%"
@@ -645,7 +661,7 @@ class PokeBattle_Battler
     
     # Used as a multiplier
     def levelNerfMisc(intensity = 1.0)
-        return 1 if pbOwnedByPlayer?
+        return 1 if humanControlled?
         levelPenalty = levelNerfIntensity(intensity)
         levelPenalty = -levelPenalty / 5 / 10 + 1.0
         PBDebug.log"[LEVEL NERF] Adjusted score by (-#{100 - (levelPenalty * 100).round})%"

@@ -50,7 +50,7 @@ class PokeBattle_AI
         choices = []
         bestKillInfo = nil
         urgency = 0
-        urgency = user.getUrgency if !user.pbOwnedByPlayer?
+        urgency = user.getUrgency if !user.humanControlled?
         slowerDead = false
         fasterDead = false
         killInfoPerChoice = []

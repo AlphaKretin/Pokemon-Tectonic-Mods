@@ -5,6 +5,12 @@ class PokeBattle_AI
     attr_reader :precalculatedDefensiveMatchup
     attr_accessor :battlePalace
     attr_accessor :battleArena
+    # The battler whose action is currently being decided by this AI pass --
+    # used under autoTesting (where pbOwnedByPlayer? no longer identifies
+    # "the human," since every battler is AI-controlled regardless of slot)
+    # to answer "am I assessing my own side, or the opponent's?" symmetrically
+    # for both trainers. See Battler_AI_Helpers.rb's aiInfoGuessRequired?.
+    attr_accessor :currentDecidingBattler
 
     def initialize(battle)
         @battle = battle
@@ -15,6 +21,7 @@ class PokeBattle_AI
         @justswitched = [false,false,false,false]
         @battleArena = false
         @battlePalace = false
+        @currentDecidingBattler = nil
     end
 
     def pbAIRandom(x); return rand(x); end
@@ -58,6 +65,7 @@ class PokeBattle_AI
     def pbDefaultChooseEnemyCommand(idxBattler)
         return if @battle.pbAutoFightMenu(idxBattler) # Battle palace shenanigans
         battler = @battle.battlers[idxBattler]
+        @currentDecidingBattler = battler
 
         if battler.boss?
             pbChooseMovesBoss(idxBattler)
