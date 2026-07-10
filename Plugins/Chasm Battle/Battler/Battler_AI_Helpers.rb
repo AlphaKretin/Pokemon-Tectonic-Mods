@@ -33,7 +33,7 @@ class PokeBattle_Battler
     end
 
     def ownersPolicies
-        return [] if pbOwnedByPlayer?
+        return [] if humanControlled?
         return owner.policies if owner
         return []
     end
