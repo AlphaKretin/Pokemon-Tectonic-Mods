@@ -364,7 +364,18 @@ class PokeBattle_Battle
     end
 
     def updateTribeCounts
-        playerTribalBonus().updateTribeCount
+        # Walk both sides (not just @opponent) so tribe counts are refreshed
+        # for whichever trainer actually owns the party in that slot -- e.g.
+        # in AI-vs-AI tournament battles, @player[0] is an NPCTrainer, not
+        # $Trainer, so playerTribalBonus() (which always operates on the
+        # global $Trainer) silently left @player[0]'s own tribalBonus stale
+        # at whatever it was computed as during Trainer#initialize (before
+        # its party was assigned). Real human-vs-boss play is unaffected
+        # since @player[0] is $Trainer there. See the analogous CURSE_*
+        # policy walk above for the same slot-vs-identity distinction.
+        @player&.each do |playerTrainer|
+            playerTrainer.tribalBonus.updateTribeCount
+        end
         @opponent&.each do |opponentTrainer|
             opponentTrainer.tribalBonus.updateTribeCount
         end
