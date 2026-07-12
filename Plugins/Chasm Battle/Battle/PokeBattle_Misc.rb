@@ -176,7 +176,7 @@ class PokeBattle_Battle
                   end
                 end
 
-                b.pbUseMove([:UseMove, index, move, -1, 0])
+                b.pbUseMove([:UseMove, index, move, -1, 0], true)
                 usedEmpoweredMove = true
             end
             b.phaseTransitioning = false
