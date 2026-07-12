@@ -727,9 +727,9 @@ BattleHandlers::UserAbilityEndOfMove.add(:FRIGHTENINGFANGS,
           next if b.damageState.missed || b.damageState.unaffected
           battle.pbShowAbilitySplash(user, ability)
           if b.pbAttack > b.pbSpAtk
-          b.pbLowerMultipleStatSteps([:ATTACK,2], user, move: self)
+          b.pbLowerMultipleStatSteps([:ATTACK,2], user, move: move)
           else
-          b.pbLowerMultipleStatSteps([:SPECIAL_ATTACK,2], user, move: self)
+          b.pbLowerMultipleStatSteps([:SPECIAL_ATTACK,2], user, move: move)
           end
       battle.pbHideAbilitySplash(user)
       end
