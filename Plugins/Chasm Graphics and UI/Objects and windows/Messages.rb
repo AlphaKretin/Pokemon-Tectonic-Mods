@@ -424,7 +424,7 @@ end
 #===============================================================================
 # Main message-displaying function
 #===============================================================================
-def pbMessageDisplay(msgwindow, message, letterbyletter = true, commandProc = nil)
+def pbMessageDisplay(msgwindow, message, letterbyletter = true, commandProc = nil, abortable: false)
     return unless msgwindow
     oldletterbyletter = msgwindow.letterbyletter
     msgwindow.letterbyletter = letterbyletter ? true : false
@@ -788,11 +788,23 @@ def pbMessageDisplay(msgwindow, message, letterbyletter = true, commandProc = ni
             msgwindow.resume if msgwindow.busy?
             break unless msgwindow.busy?
         end
-        if Input.trigger?(Input::USE) || Input.trigger?(Input::BACK)
+        if Input.trigger?(Input::USE) || Input.trigger?(Input::BACK) || abortable
             if msgwindow.busy?
-                pbPlayDecisionSE if msgwindow.pausing?
-                msgwindow.resume
-            elsif signWaitCount == 0
+                if abortable
+                    # .resume alone only clears a pause; it doesn't fast-forward
+                    # letter-by-letter typing the way real input doesn't need to
+                    # (a real player just waits out the reveal). With nobody at
+                    # the controls (AI-vs-AI benchmarking, replay watch), that
+                    # reveal has to be actively skipped instead.
+                    msgwindow.skipAhead
+                else
+                    pbPlayDecisionSE if msgwindow.pausing?
+                    msgwindow.resume
+                end
+            elsif signWaitCount == 0 && (!abortable || msgwindow.waitcount == 0)
+                # A real player dismisses a \wt[] hold early on demand (as before);
+                # abortable playback has nobody to dismiss it, so it must actually
+                # wait out the hold instead of closing the instant typing finishes.
                 break
             end
         end

@@ -27,7 +27,7 @@ class PokeBattle_Battle
 
     def pbDisplayWithFormatting(msg)
         @scene.pbShowWindow(PokeBattle_Scene::MESSAGE_BOX)
-        pbMessageDisplay(@scene.getMessageWindow, msg) # Global display method
+        pbMessageDisplay(@scene.getMessageWindow, msg, abortable: @scene.abortable) # Global display method
         @scene.resetMessageTextColor
     end
 
@@ -48,7 +48,7 @@ class PokeBattle_Battle
         windowSkinName += "_dark" if darkMode?
         msgwindow = pbCreateMessageWindow
         narrationText = "\\wm\\w[#{windowSkinName}]\\ss#{msg}\\wt[#{bossNarrationDuration}]"
-        pbMessageDisplay(msgwindow,narrationText)
+        pbMessageDisplay(msgwindow, narrationText, abortable: @scene.abortable)
         pbDisposeMessageWindow(msgwindow)
     end
 

@@ -119,7 +119,7 @@ class PokeBattle_Battle
         msgwindow.lineHeight(48)
         curseName = _INTL("\\ts[]<c3=4C0D0D,FFFFFF22><b><outln2><ac><fs={1}>\\w[]\\wu\\l[12]{2}</fs></ac></outln2></b></c3>\\wt[{3}]",fontSize,curseName,waitTime)
         curseName = "<fn=Didact Gothic>" + curseName + "</fn>"
-        pbMessageDisplay(msgwindow,curseName)
+        pbMessageDisplay(msgwindow, curseName, abortable: scene.abortable)
 
         pbDisplaySlower(explanation) if explanation
         pbDisposeMessageWindow(msgwindow)
