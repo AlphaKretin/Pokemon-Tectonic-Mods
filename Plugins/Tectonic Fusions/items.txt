@@ -1,0 +1,10 @@
+#-------------------------------
+[UNIVERSALSPLICERS]
+Name = Universal Splicers
+NamePlural = Universal Splicers
+Pocket = 8
+Price = 0
+FieldUse = OnPokemon
+Flags = KeyItem
+Description = Modified DNA Splicers that can fuse any two Pokemon.
+#-------------------------------
