@@ -7,6 +7,9 @@
 # modified.  Load order is safe because "Chasm *" plugins (C) load before
 # "Tectonic Fusions" (T) alphabetically, so the target classes exist first.
 
+# Max tribes the original UI layouts have room for before overflow occurs.
+TRIBE_OVERFLOW_THRESHOLD = 3
+
 # ── MasterDex info page (PokemonPokedexInfo_Scene#drawPageInfo) ───────────────
 # The original joins all tribe names into a single string and renders it in a
 # 2-line drawTextEx box at (266, 166, w=224).  With many tribes the string is
@@ -21,7 +24,7 @@ class PokemonPokedexInfo_Scene
     def drawPageInfo
         _drawPageInfo_without_tribe_overflow_fix
         species_data = GameData::Species.get_species_form(@species, @form)
-        return unless species_data.tribes.length > 3
+        return unless species_data.tribes.length > TRIBE_OVERFLOW_THRESHOLD
         overlay = @sprites["overlay"].bitmap
         base   = MessageConfig.pbDefaultTextMainColor
         shadow = MessageConfig.pbDefaultTextShadowColor
@@ -46,7 +49,7 @@ class PokemonSummary_Scene
     end
     def drawPageThree
         tribes = @pokemon.tribes
-        if tribes.length > 3
+        if tribes.length > TRIBE_OVERFLOW_THRESHOLD
             count = tribes.length
             @pokemon.define_singleton_method(:tribes) { [] }
             begin

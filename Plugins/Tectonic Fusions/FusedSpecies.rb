@@ -326,11 +326,11 @@ module GameData
         end
 
         def category
-            "Fusion"
+            @real_category
         end
 
         def pokedex_entry
-            "A fusion of #{primary_species.name} and #{secondary_species.name}."
+            @real_pokedex_entry
         end
 
         # Fusions have no form-specific moves.

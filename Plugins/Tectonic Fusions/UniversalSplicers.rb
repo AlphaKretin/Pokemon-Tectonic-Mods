@@ -67,7 +67,8 @@ ItemHandlers::UseOnPokemon.add(:UNIVERSALSPLICERS, proc { |item, pkmn, scene|
         secondary = pkmn.fusion_secondary
         pkmn_idx  = $Trainer.party.index(pkmn)
 
-        # Distribute EXP gained while fused: each component receives half.
+        # Both components receive the full EXP gained while fused, so splitting
+        # a fusion back apart never costs the player levels.
         # If the fusion is at the level cap, boost both components to the cap instead
         # (accounts for EXP that was silently lost against the cap).
         exp_gained = pkmn.fusion_exp_at_fusion \
