@@ -179,7 +179,7 @@ module GameData
             GameData::Stat.each_main do |s|
                 primary_stat = 0
                 secondary_stat = 0
-                if %i[ATTACK DEFENSE SPEED].include?(s.id)
+                if PRIMARY_STATS.include?(s.id)
                     primary_stat = @primary_species.base_stats[s.id]
                     secondary_stat = @secondary_species.base_stats[s.id]
                 else
