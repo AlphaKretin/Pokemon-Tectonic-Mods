@@ -171,7 +171,7 @@ module GameData
                          @secondary_species.type1
                      end
 
-            # Stats: average of both parents, clamped to at least 1.
+            # Stats: weighted blend of both parents per STAT_WEIGHTING.
             # stat_rounding 0 skips the rounding logic in the base initializer
             # (which we never call); we do our own rounding here.
             @stat_rounding = 0
@@ -187,7 +187,10 @@ module GameData
                     primary_stat = @secondary_species.base_stats[s.id]
                     secondary_stat = @primary_species.base_stats[s.id]
                 end
-                fused_stat = (2 * primary_stat + secondary_stat) / 3.0
+                high_weight = STAT_WEIGHTING[0]
+                low_weight  = STAT_WEIGHTING[1]
+                total = high_weight + low_weight
+                fused_stat = (high_weight * primary_stat + low_weight * secondary_stat) / total.to_f
                 @base_stats[s.id] = fused_stat.round
             end
 
